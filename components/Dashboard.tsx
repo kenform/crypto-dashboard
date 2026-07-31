@@ -625,6 +625,11 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
+
+      <div className="dashboard-switch">
+        <span className="dashboard-switch-active">Alpha</span>
+        <a href="/mtt">Upscale / MTT</a>
+      </div>
 <section className="metrics-grid">
         <Card
           label="Сделки в ожидании"

@@ -880,3 +880,58 @@ footer {
 footer {
   padding-top: 14px;
 }
+
+/* Alpha / Upscale page switch */
+.dashboard-switch {
+  display: flex;
+  width: fit-content;
+  gap: 5px;
+  margin: 0 0 12px auto;
+  padding: 5px;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: rgba(10, 15, 24, 0.8);
+}
+
+.dashboard-switch a,
+.dashboard-switch-active {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 760;
+  text-decoration: none;
+}
+
+.dashboard-switch a {
+  color: var(--muted);
+}
+
+.dashboard-switch a:hover {
+  color: var(--text);
+  background: rgba(122, 167, 255, 0.09);
+}
+
+.dashboard-switch-active {
+  color: var(--accent);
+  background: rgba(140, 255, 177, 0.08);
+}
+
+.mtt-metrics-grid {
+  margin-top: 0;
+}
+
+@media (max-width: 760px) {
+  .dashboard-switch {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .dashboard-switch a,
+  .dashboard-switch-active {
+    flex: 1;
+    justify-content: center;
+  }
+}
