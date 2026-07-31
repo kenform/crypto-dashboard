@@ -171,19 +171,83 @@ function healthClass(value: unknown): string {
 }
 
 function stateLabel(value: unknown): string {
-  const status = String(value || "UNKNOWN").toUpperCase();
+  const status = String(
+    value || "UNKNOWN",
+  ).toUpperCase();
 
   const labels: Record<string, string> = {
-    ARMED_WAITING_MTT: "Ждёт новый MTT-сигнал",
-    ORDER_VERIFIED: "Ордер подтверждён",
-    POSITION_ACTIVE: "Позиция открыта",
-    SIGNAL_VERIFIED: "Сигнал подтверждён",
-    CLOSED: "Сделка закрыта",
-    WIN: "Победа",
-    LOSS: "Поражение",
+    ARMED_WAITING_MTT:
+      "Ждёт новый MTT-сигнал",
+
+    SIGNAL_VERIFIED:
+      "Сигнал подтверждён",
+
+    ORDER_SUBMITTED_VERIFIED:
+      "Лимитная заявка подтверждена",
+
+    SUBMITTED_VERIFIED_UNRESOLVED:
+      "Заявка подтверждена, статус уточняется",
+
+    ORDER_VERIFIED:
+      "Ордер подтверждён",
+
+    ORDER_ACTIVE:
+      "Лимитная заявка активна",
+
+    POSITION_ACTIVE:
+      "Позиция открыта",
+
+    ORDER_INACTIVE_UNRESOLVED:
+      "Заявка больше не активна, результат уточняется",
+
+    POSITION_INACTIVE_PENDING_HISTORY:
+      "Позиция закрыта, результат уточняется",
+
+    VERIFIED_HISTORY:
+      "Подтверждённая заявка",
+
+    CLOSED:
+      "Сделка закрыта",
+
+    WIN:
+      "Победа",
+
+    LOSS:
+      "Поражение",
+
+    WORKING:
+      "Работает",
+
+    DELAYED:
+      "Есть задержка",
+
+    DEGRADED_ACCOUNT_TRUTH:
+      "Данные счёта временно недоступны",
+
+    DEGRADED_GUARD_STALE:
+      "Данные счёта устарели",
   };
 
-  return labels[status] || status.replaceAll("_", " ");
+  return (
+    labels[status]
+    || status.replaceAll("_", " ")
+  );
+}
+
+function sideLabel(value: unknown): string {
+  const side = String(
+    value || "",
+  ).toUpperCase();
+
+  if (side === "SHORT") {
+    return "ШОРТ";
+  }
+
+  if (side === "LONG") {
+    return "ЛОНГ";
+  }
+
+  return side || "—";
 }
 
 function TradeCard({
@@ -198,7 +262,7 @@ function TradeCard({
           <strong className={sideClass(record.side)}>
             {record.symbol || "—"}
           </strong>
-          <span>{record.side || "—"}</span>
+          <span>{sideLabel(record.side)}</span>
         </div>
 
         <span className="pill neutral">
@@ -218,7 +282,7 @@ function TradeCard({
           <span>
             {record.outcome
               ? "Итог"
-              : "Score"}
+              : "Оценка"}
           </span>
           <strong
             className={valueClass(record.pnl_usd)}
@@ -232,17 +296,17 @@ function TradeCard({
 
       <div className="deal-details">
         <div>
-          <span>Entry</span>
+          <span>Вход</span>
           <strong>{n(record.entry, 8)}</strong>
         </div>
 
         <div>
-          <span>Stop Loss</span>
+          <span>Стоп-лосс</span>
           <strong>{n(record.sl, 8)}</strong>
         </div>
 
         <div>
-          <span>Take Profit</span>
+          <span>Тейк-профит</span>
           <strong>{n(record.tp, 8)}</strong>
         </div>
 
@@ -252,7 +316,7 @@ function TradeCard({
         </div>
 
         <div>
-          <span>Score</span>
+          <span>Оценка</span>
           <strong>{n(record.score, 1)}</strong>
         </div>
 
@@ -343,7 +407,7 @@ export default function MttDashboard() {
       ) {
         throw new Error(
           payload?.reason ||
-          "MTT account truth недоступен",
+          "Данные реального счёта MTT недоступны",
         );
       }
 
@@ -409,7 +473,7 @@ export default function MttDashboard() {
           <h1>Real Account Dashboard</h1>
 
           <p>
-            Реальный Upscale account truth,
+            Актуальные данные реального счёта Upscale,
             автоторговля и статистика MTT.
           </p>
         </div>
@@ -508,7 +572,7 @@ export default function MttDashboard() {
 
         <div className="card metric-card">
           <div className="metric-label">
-            MTT Win rate
+            Винрейт MTT
           </div>
           <div className="metric-value">
             {winRate === null
@@ -519,7 +583,7 @@ export default function MttDashboard() {
             Выборка: {n(
               performance.sample_size,
               0,
-            )} закрытых real-сделок
+            )} закрытых реальных сделок
           </div>
         </div>
 
@@ -586,12 +650,12 @@ export default function MttDashboard() {
         <div>
           <span>Защита одного цикла</span>
           <strong>
-            1 submit / сигнал
+            1 отправка / сигнал
           </strong>
         </div>
 
         <div>
-          <span>Runtime</span>
+          <span>Состояние</span>
           <strong>
             {stateLabel(runtime.status)}
           </strong>
@@ -602,7 +666,7 @@ export default function MttDashboard() {
         <div className="section-head">
           <div>
             <div className="eyebrow">
-              MTT LIFECYCLE
+              ЖИЗНЕННЫЙ ЦИКЛ MTT
             </div>
 
             <h2>Реальные сделки MTT</h2>
