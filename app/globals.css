@@ -75,7 +75,7 @@ button:disabled {
 .shell {
   width: min(1540px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 30px 0 62px;
+  padding: 24px 0 42px;
 }
 
 .topbar {
@@ -83,7 +83,7 @@ button:disabled {
   align-items: flex-start;
   justify-content: space-between;
   gap: 28px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .topbar-copy {
@@ -860,4 +860,23 @@ footer {
   .stage .subtle {
     grid-column: 1 / -1;
   }
+}
+
+
+/* Minimal dashboard cleanup */
+.hero-status-grid,
+.page-nav {
+  display: none;
+}
+
+.metrics-grid {
+  margin-top: 4px;
+}
+
+.chart-grid {
+  margin-top: 0;
+}
+
+footer {
+  padding-top: 14px;
 }

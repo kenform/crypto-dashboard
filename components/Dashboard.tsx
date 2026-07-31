@@ -605,17 +605,14 @@ export default function Dashboard() {
         <div className="topbar-copy">
           <div className="eyebrow">BROM / ALPHA</div>
           <h1>Intraday Dashboard</h1>
-          <p>
-            Понятный live dashboard: видно, работает ли стратегия сейчас, собирается ли статистика,
-            какие есть результаты и почему пока может не быть сделок.
-          </p>
+          <p>Статистика Alpha-бота, результаты и история сделок.</p>
         </div>
 
         <div className="topbar-right">
           <div className="topbar-pills">
-            <span className={`pill ${statusClass(freshness)}`}>{friendlyStatus(freshness)}</span>
-            <span className={`pill ${statusClass(health)}`}>{friendlyStatus(health)}</span>
-            <span className="pill neutral">{friendlyStatus(data?.mode || "PAPER_ONLY")}</span>
+            <span className={`pill ${statusClass(health)}`}>
+              {health === "HEALTHY" ? "Система работает" : friendlyStatus(health)}
+            </span>
           </div>
 
           <button onClick={load} disabled={refreshing}>
@@ -628,70 +625,7 @@ export default function Dashboard() {
           </div>
         </div>
       </header>
-
-      <nav className="page-nav" aria-label="Разделы dashboard">
-        <a href="#overview">Сводка</a>
-        <a href="#performance">Результаты</a>
-        <a href="#system">Система</a>
-        <a href="#activity">Рынок</a>
-        <a href="#trades">Сделки</a>
-      </nav>
-
-      <section className="hero-status-grid" id="overview">
-        <div className="card hero-main">
-          <div className="eyebrow">С ПЕРВОГО ВЗГЛЯДА</div>
-          <h2>{statusTitle}</h2>
-          <p className="hero-main-copy">{statusDescription}</p>
-
-          <div className="hero-badges">
-            <span className={`big-pill ${statusClass(apiState)}`}>
-              <span className="status-dot" aria-hidden="true" />
-              {friendlyStatus(apiState)}
-            </span>
-            <span className={`big-pill ${statusClass(freshness)}`}>{friendlyStatus(freshness)}</span>
-            <span className={`big-pill ${realOff ? "good" : "bad"}`}>REAL {realOff ? "OFF" : "CHECK"}</span>
-            <span className={`big-pill ${demoOff ? "good" : "bad"}`}>DEMO {demoOff ? "OFF" : "CHECK"}</span>
-            <span className={`big-pill ${orderOff ? "good" : "bad"}`}>ORDERS {orderOff ? "OFF" : "CHECK"}</span>
-          </div>
-
-          <div className="hero-quick-grid">
-            <div>
-              <span>Последнее обновление</span>
-              <strong>{generated}</strong>
-            </div>
-            <div>
-              <span>Статус статистики</span>
-              <strong>{review}</strong>
-            </div>
-            <div>
-              <span>Прогресс quality gate</span>
-              <strong>{n(sample.decisive, 0)}/30</strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="card hero-side">
-          <div className="eyebrow">ЧТО ЭТО ЗНАЧИТ</div>
-          <h2>Простыми словами</h2>
-
-          <div className="simple-list">
-            <div className="simple-item">
-              <strong>1. Стратегия ищет возможности</strong>
-              <span>Система смотрит монеты и фильтрует только чистые сценарии.</span>
-            </div>
-            <div className="simple-item">
-              <strong>2. Сейчас идёт сбор статистики</strong>
-              <span>Пока не накоплено 30 решённых сделок, поэтому это этап проверки качества.</span>
-            </div>
-            <div className="simple-item">
-              <strong>3. Реальная торговля выключена</strong>
-              <span>Этот dashboard ничего не отправляет на биржу и не открывает сделки.</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="metrics-grid">
+<section className="metrics-grid">
         <Card
           label="Сделки в ожидании"
           value={n(waitingTrades.length || summary.waiting_entry, 0)}
@@ -724,7 +658,7 @@ export default function Dashboard() {
         />
       </section>
 
-      <section className="chart-grid" id="performance">
+      <section className="chart-grid">
         <CurveChart
           eyebrow="PERFORMANCE / R"
           title="Cumulative R"
@@ -743,125 +677,13 @@ export default function Dashboard() {
           digits={2}
         />
       </section>
-
-      <section className="two-col" id="system">
-        <PlainCard eyebrow="ПОЧЕМУ ПОКА МОЖЕТ БЫТЬ ПУСТО" title="Почему нет сделок">
-          <div className="why-grid">
-            <div className="why-card">
-              <span>Статус quality gate</span>
-              <strong>{review}</strong>
-              <p>{reviewReason}</p>
-            </div>
-
-            <div className="why-card">
-              <span>Подходящих после clean-запуска</span>
-              <strong>{n(funnel.eligible_since_activation, 0)}</strong>
-              <p>Сколько сигналов реально дошло до стадии “подходит”.</p>
-            </div>
-          </div>
-
-          {topReasons.length ? (
-            <div className="reason-list">
-              {topReasons.map((reason) => (
-                <div className="reason-row" key={reason.key}>
-                  <span>{reasonLabel(reason.key)}</span>
-                  <strong>{n(reason.value, 0)}</strong>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-inline">
-              Пока нет накопленных причин отклонения в текущем snapshot.
-            </div>
-          )}
-        </PlainCard>
-
-        <PlainCard eyebrow="ТЕХНИЧЕСКОЕ СОСТОЯНИЕ" title="Работает ли система">
-          <div className="health-grid">
-            <div className="health-item">
-              <span>API</span>
-              <strong className={statusClass(apiState)}>{friendlyStatus(apiState)}</strong>
-            </div>
-            <div className="health-item">
-              <span>Свежесть данных</span>
-              <strong className={statusClass(freshness)}>{friendlyStatus(freshness)}</strong>
-            </div>
-            <div className="health-item">
-              <span>Pipeline</span>
-              <strong className={statusClass(health)}>{friendlyStatus(health)}</strong>
-            </div>
-            <div className="health-item">
-              <span>Режим</span>
-              <strong>{friendlyStatus(data?.mode || "PAPER_ONLY")}</strong>
-            </div>
-          </div>
-
-          <details className="tech-details">
-            <summary>Показать технические этапы</summary>
-
-            <div className="stage-list">
-              {stageRows.length ? (
-                stageRows.map((stage, index) => (
-                  <div className="stage" key={`${text(stage.name)}-${index}`}>
-                    <span>{stageLabel(stage.name)}</span>
-                    <span className={`pill ${statusClass(stage.status)}`}>{friendlyStatus(stage.status)}</span>
-                    <span className="subtle">{n(stage.age_seconds, 0)}s</span>
-                  </div>
-                ))
-              ) : (
-                <div className="empty-inline">Пока нет данных по техническим этапам.</div>
-              )}
-            </div>
-          </details>
-        </PlainCard>
-      </section>
-
-      <section className="two-col" id="activity">
-        <PlainCard eyebrow="АКТИВНОСТЬ СТРАТЕГИИ" title="Что фильтр видит по рынку">
-          {["1h", "6h", "24h"].map((windowName) => {
-            const row = windows[windowName] || {};
-
-            return (
-              <div className="funnel-row" key={windowName}>
-                <strong>{windowName}</strong>
-                <span>Найдено: {n(row.source_rows, 0)}</span>
-                <span>HTF ок: {n(row.htf_ok, 0)}</span>
-                <span>Объём ок: {n(row.volume_ok, 0)}</span>
-                <span className="accent">RR3: {n(row.rr_3_ready, 0)}</span>
-              </div>
-            );
-          })}
-          <div className="note">
-            Это не сделки, а этапы фильтрации: сколько идей система нашла и сколько из них дошло дальше.
-          </div>
-        </PlainCard>
-
-        <PlainCard eyebrow="МОНЕТЫ" title="Монеты и история">
-          {uniqueSymbols.length ? (
-            <div className="symbol-chip-wrap">
-              {uniqueSymbols.map((symbol) => (
-                <span className="symbol-chip" key={symbol}>{symbol}</span>
-              ))}
-            </div>
-          ) : (
-            <div className="empty-inline">
-              Пока нет монет в clean paper-истории. После первой сделки они появятся здесь.
-            </div>
-          )}
-
-          <div className="note">
-            Здесь будет короткий список монет, которые уже попали в историю стратегии.
-          </div>
-        </PlainCard>
-      </section>
-
-      <section className="card section-card" id="trades">
+<section className="card section-card">
         <div className="section-head">
           <div>
             <div className="eyebrow">ИСТОРИЯ СДЕЛОК</div>
-            <h2>Понятная история сделок</h2>
+            <h2>История сделок</h2>
             <p className="section-description">
-              Без лишнего шума: монета, статус, время и сухой результат.
+              Монета, статус, время и результат.
             </p>
           </div>
           <span className="subtle">Обновление каждые 15 секунд</span>
@@ -914,9 +736,7 @@ export default function Dashboard() {
         )}
       </section>
 
-      <footer>
-        BROM Alpha · понятный paper dashboard · real/demo submit выключены · ссылку можно использовать как live-статус стратегии
-      </footer>
+      <footer>BROM Dashboard · статистика и история сделок</footer>
     </main>
   );
 }
