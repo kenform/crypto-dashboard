@@ -36,6 +36,38 @@ type ScalpTrade = {
   reason?: string | null;
 };
 
+type ShadowMetrics = {
+  selected?: number | null;
+  closed?: number | null;
+  open?: number | null;
+  waiting?: number | null;
+  wins?: number | null;
+  losses?: number | null;
+  flat?: number | null;
+  win_rate_pct?: number | null;
+  expectancy_r?: number | null;
+  total_r?: number | null;
+  profit_factor?: number | null;
+  max_drawdown_r?: number | null;
+};
+
+type ShadowArm = {
+  label?: string;
+  historical?: ShadowMetrics;
+  forward?: ShadowMetrics;
+  decision_ready?: boolean;
+};
+
+type ScalpShadowV2 = {
+  status?: string;
+  generated_at?: string | null;
+  activation_epoch?: string | null;
+  forward_candidate_count?: number | null;
+  minimum_closed_for_decision?: number | null;
+  current_leader?: string | null;
+  arms?: Record<string, ShadowArm>;
+};
+
 type ScalpPayload = {
   status?: string;
   mode?: string;
@@ -46,6 +78,7 @@ type ScalpPayload = {
   policy?: ValueMap;
   summary?: ValueMap;
   diagnosis?: ValueMap;
+  shadow_v2?: ScalpShadowV2;
   trades?: ScalpTrade[];
 };
 
@@ -149,6 +182,50 @@ function statusLabel(value: unknown): string {
   return labels[state] || state.replaceAll("_", " ");
 }
 
+function shadowStatusLabel(
+  value: unknown,
+): string {
+  const status = String(
+    value || "NOT_AVAILABLE",
+  ).toUpperCase();
+
+  const labels: Record<string, string> = {
+    COLLECTING_FORWARD_SAMPLE:
+      "Собираем новые сделки",
+
+    DECISION_READY:
+      "Данных достаточно для решения",
+
+    NOT_AVAILABLE:
+      "Данные ещё не доступны",
+  };
+
+  return (
+    labels[status]
+    || status.replaceAll("_", " ")
+  );
+}
+
+function shadowStatusClass(
+  value: unknown,
+): string {
+  const status = String(
+    value || "",
+  ).toUpperCase();
+
+  if (status === "DECISION_READY") {
+    return "good";
+  }
+
+  if (
+    status === "COLLECTING_FORWARD_SAMPLE"
+  ) {
+    return "warn";
+  }
+
+  return "neutral";
+}
+
 export default function ScalpDashboard() {
   const [data, setData] =
     useState<ScalpPayload | null>(null);
@@ -204,6 +281,24 @@ export default function ScalpDashboard() {
     [data],
   );
 
+  const shadow = data?.shadow_v2;
+
+  const shadowArms = Object.entries(
+    shadow?.arms || {},
+  );
+
+  const minimumClosed = numberValue(
+    shadow?.minimum_closed_for_decision,
+  ) || 20;
+
+  const currentLeaderLabel = (
+    shadow?.current_leader
+      ? shadow?.arms?.[
+          shadow.current_leader
+        ]?.label
+      : null
+  );
+
   return (
     <main className="shell">
       <header className="topbar">
@@ -212,7 +307,7 @@ export default function ScalpDashboard() {
             BROM / ALPHA / SCALP
           </div>
 
-          <h1>Scalp Dashboard</h1>
+          <h1>Панель Scalp</h1>
 
           <p>
             Каноническая shadow-only статистика
@@ -231,16 +326,16 @@ export default function ScalpDashboard() {
             }`}
           >
             {data?.status === "AVAILABLE"
-              ? "Tracker работает"
+              ? "Трекер работает"
               : data?.status === "DELAYED"
               ? "Источник задерживается"
-              : "Ожидаем tracker"}
+              : "Ожидаем данные трекера"}
           </span>
 
           <div className="updated">
             {String(
               data?.sample_label ||
-              "V1 shadow sample",
+              "Теневая выборка V1",
             )}
           </div>
         </div>
@@ -283,7 +378,7 @@ export default function ScalpDashboard() {
 
         <div className="card metric-card">
           <div className="metric-label">
-            Win rate 2R
+            Винрейт 2R
           </div>
           <div className="metric-value">
             {pct(summary.win_rate_2r_pct)}
@@ -295,7 +390,7 @@ export default function ScalpDashboard() {
 
         <div className="card metric-card">
           <div className="metric-label">
-            Win rate 3R
+            Винрейт 3R
           </div>
           <div className="metric-value">
             {pct(summary.win_rate_3r_pct)}
@@ -307,7 +402,7 @@ export default function ScalpDashboard() {
 
         <div className="card metric-card">
           <div className="metric-label">
-            Expectancy 2R
+            Матожидание 2R
           </div>
           <div
             className={`metric-value ${valueClass(
@@ -323,7 +418,7 @@ export default function ScalpDashboard() {
 
         <div className="card metric-card">
           <div className="metric-label">
-            Expectancy 3R
+            Матожидание 3R
           </div>
           <div
             className={`metric-value ${valueClass(
@@ -372,7 +467,7 @@ export default function ScalpDashboard() {
         </div>
 
         <div>
-          <span>Stop rate от входов</span>
+          <span>Доля стоп-лоссов от входов</span>
           <strong>
             {pct(
               summary.stop_rate_filled_pct,
@@ -380,6 +475,162 @@ export default function ScalpDashboard() {
           </strong>
         </div>
 
+      </section>
+
+      <section className="card section-card">
+        <div className="section-head">
+          <div>
+            <div className="eyebrow">
+              SCALP V2 — ПРОВЕРКА НА НОВЫХ ДАННЫХ
+            </div>
+
+            <h2>
+              Параллельный forward-эксперимент
+            </h2>
+
+            <p className="section-description">
+              Шесть независимых фильтров
+              сравниваются только на сигналах,
+              появившихся после запуска эксперимента.
+              Текущий Scalp V1 не изменён.
+            </p>
+          </div>
+
+          <span
+            className={`pill ${shadowStatusClass(
+              shadow?.status,
+            )}`}
+          >
+            {shadowStatusLabel(
+              shadow?.status,
+            )}
+          </span>
+        </div>
+
+        <section className="compact-results">
+          <div>
+            <span>Новых кандидатов</span>
+            <strong>
+              {n(
+                shadow?.forward_candidate_count,
+                0,
+              )}
+            </strong>
+          </div>
+
+          <div>
+            <span>
+              Минимум закрытых на ветку
+            </span>
+            <strong>
+              {n(minimumClosed, 0)}
+            </strong>
+          </div>
+
+          <div>
+            <span>Текущий лидер</span>
+            <strong>
+              {currentLeaderLabel ||
+                "Ещё не определён"}
+            </strong>
+          </div>
+
+          <div>
+            <span>Старт эксперимента</span>
+            <strong>
+              {formatTime(
+                shadow?.activation_epoch,
+              )}
+            </strong>
+          </div>
+        </section>
+
+        {shadowArms.length ? (
+          <section className="metrics-grid">
+            {shadowArms.map(
+              ([armId, arm]) => {
+                const historical =
+                  arm.historical || {};
+
+                const forward =
+                  arm.forward || {};
+
+                return (
+                  <div
+                    className="card metric-card"
+                    key={armId}
+                  >
+                    <div className="metric-label">
+                      {arm.label || armId}
+                    </div>
+
+                    <div className="metric-value">
+                      {n(forward.closed, 0)}
+                      {" / "}
+                      {n(minimumClosed, 0)}
+                    </div>
+
+                    <div className="metric-hint">
+                      Новые закрытые сделки
+                    </div>
+
+                    <div className="metric-hint">
+                      Винрейт:{" "}
+                      {pct(
+                        forward.win_rate_pct,
+                      )}
+                      {" · "}
+                      Матожидание:{" "}
+                      <span
+                        className={valueClass(
+                          forward.expectancy_r,
+                        )}
+                      >
+                        {rValue(
+                          forward.expectancy_r,
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="metric-hint">
+                      Выбрано:{" "}
+                      {n(forward.selected, 0)}
+                      {" · "}
+                      Открыто:{" "}
+                      {n(forward.open, 0)}
+                      {" · "}
+                      Ожидают:{" "}
+                      {n(forward.waiting, 0)}
+                    </div>
+
+                    <div className="metric-hint">
+                      История:{" "}
+                      {n(
+                        historical.closed,
+                        0,
+                      )}
+                      {" сделок · "}
+                      {rValue(
+                        historical.expectancy_r,
+                      )}
+                    </div>
+
+                    <div className="metric-hint">
+                      {arm.decision_ready
+                        ? "✓ Данных достаточно"
+                        : "Сбор выборки продолжается"}
+                    </div>
+                  </div>
+                );
+              },
+            )}
+          </section>
+        ) : (
+          <div className="empty-inline">
+            Shadow-эксперимент ещё не
+            опубликовал ветки.
+          </div>
+        )}
       </section>
 
       <section className="card section-card">
@@ -460,28 +711,28 @@ export default function ScalpDashboard() {
 
                   <div className="deal-details">
                     <div>
-                      <span>Entry</span>
+                      <span>Вход</span>
                       <strong>
                         {n(trade.entry, 8)}
                       </strong>
                     </div>
 
                     <div>
-                      <span>Stop Loss</span>
+                      <span>Стоп-лосс</span>
                       <strong>
                         {n(trade.sl, 8)}
                       </strong>
                     </div>
 
                     <div>
-                      <span>Target 2R</span>
+                      <span>Цель 2R</span>
                       <strong>
                         {n(trade.tp2, 8)}
                       </strong>
                     </div>
 
                     <div>
-                      <span>Target 3R</span>
+                      <span>Цель 3R</span>
                       <strong>
                         {n(trade.tp3, 8)}
                       </strong>
@@ -510,7 +761,7 @@ export default function ScalpDashboard() {
                     </div>
 
                     <div>
-                      <span>Source RR</span>
+                      <span>Исходный RR</span>
                       <strong>
                         {n(trade.source_rr, 2)}
                       </strong>
@@ -536,8 +787,8 @@ export default function ScalpDashboard() {
       </section>
 
       <footer>
-        Alpha Scalp 141 V1 · shadow-only ·
-        no real/demo submit
+        Alpha Scalp 141 V1 · теневой режим ·
+        без реальных и демо-заявок
       </footer>
     </main>
   );
