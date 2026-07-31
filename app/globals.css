@@ -1148,3 +1148,15 @@ footer {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Direction-aware ticker colors */
+.ticker-long {
+  color: #66e3a4;
+  text-shadow: 0 0 18px rgba(102, 227, 164, 0.12);
+}
+
+.ticker-short {
+  color: #ff8290;
+  text-shadow: 0 0 18px rgba(255, 130, 144, 0.12);
+}

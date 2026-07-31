@@ -80,6 +80,14 @@ function money(value: unknown): string {
   return `${parsed > 0 ? "+" : ""}${n(parsed, 2)} USD`;
 }
 
+function moneyPlain(value: unknown): string {
+  const parsed = numberValue(value);
+
+  if (parsed === null) return "—";
+
+  return `${n(Math.abs(parsed), 2)} USD`;
+}
+
 function pct(value: unknown): string {
   const parsed = numberValue(value);
 
@@ -93,6 +101,15 @@ function valueClass(value: unknown): string {
 
   if (parsed === null || parsed === 0) return "";
   return parsed > 0 ? "positive" : "negative";
+}
+
+function sideTickerClass(value: unknown): string {
+  const side = String(value || "").toUpperCase();
+
+  if (side === "LONG") return "ticker-long";
+  if (side === "SHORT") return "ticker-short";
+
+  return "";
 }
 
 function stateLabel(value: unknown): string {
@@ -216,7 +233,9 @@ function TruthDealCard({
     <details className="deal-card">
       <summary className="deal-summary">
         <div className="deal-main">
-          <strong>{String(symbol || kind)}</strong>
+          <strong className={sideTickerClass(side)}>
+            {String(symbol || kind)}
+          </strong>
           <span>{String(side || "—")}</span>
         </div>
 
@@ -302,7 +321,7 @@ function TruthDealCard({
         <div>
           <span>Риск</span>
           <strong>
-            {money(row.risk_usd)}
+            {moneyPlain(row.risk_usd)}
           </strong>
         </div>
 
@@ -365,7 +384,9 @@ function TodayDealCard({
     <details className="deal-card">
       <summary className="deal-summary">
         <div className="deal-main">
-          <strong>{row.symbol || "—"}</strong>
+          <strong className={sideTickerClass(row.side)}>
+            {row.symbol || "—"}
+          </strong>
           <span>{row.side || "—"}</span>
         </div>
 
@@ -632,7 +653,7 @@ export default function MttDashboard() {
             Риск на сделку
           </div>
           <div className="metric-value">
-            {money(policy.risk_per_trade_usd)}
+            {moneyPlain(policy.risk_per_trade_usd)}
           </div>
           <div className="metric-hint">
             {n(

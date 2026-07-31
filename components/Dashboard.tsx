@@ -71,6 +71,14 @@ function money(value: unknown): string {
   return `${parsed > 0 ? "+" : ""}${n(parsed, 2)} USD`;
 }
 
+function moneyPlain(value: unknown): string {
+  const parsed = numberValue(value);
+
+  if (parsed === null) return "—";
+
+  return `${n(Math.abs(parsed), 2)} USD`;
+}
+
 function rValue(value: unknown): string {
   const parsed = numberValue(value);
 
@@ -84,6 +92,15 @@ function valueClass(value: unknown): string {
 
   if (parsed === null || parsed === 0) return "";
   return parsed > 0 ? "positive" : "negative";
+}
+
+function sideTickerClass(value: unknown): string {
+  const side = String(value || "").toUpperCase();
+
+  if (side === "LONG") return "ticker-long";
+  if (side === "SHORT") return "ticker-short";
+
+  return "";
 }
 
 function stateLabel(value: unknown): string {
@@ -265,7 +282,11 @@ function DealCard({
     <details className="deal-card">
       <summary className="deal-summary">
         <div className="deal-main">
-          <strong>{trade.symbol || "—"}</strong>
+          <strong
+            className={sideTickerClass(trade.side)}
+          >
+            {trade.symbol || "—"}
+          </strong>
           <span>{trade.side || "—"}</span>
         </div>
 
@@ -318,7 +339,7 @@ function DealCard({
         <div>
           <span>Риск</span>
           <strong>
-            {money(trade.risk_usd ?? RISK_USD)}
+            {moneyPlain(trade.risk_usd ?? RISK_USD)}
           </strong>
         </div>
 
