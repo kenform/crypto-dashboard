@@ -1,38 +1,27 @@
+import { get } from "@vercel/blob";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export async function GET() {
-  const url = process.env.ALPHA_API_URL;
-  const token = process.env.ALPHA_API_TOKEN;
-
-  if (!url || !token) {
-    return NextResponse.json(
-      { error: "ALPHA_API_URL or ALPHA_API_TOKEN is not configured" },
-      { status: 500 },
-    );
-  }
-
   try {
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
-      cache: "no-store",
-      signal: AbortSignal.timeout(10_000),
+    const result = await get("alpha-dashboard/latest.json", {
+      access: "public",
     });
 
-    const text = await response.text();
-
-    if (!response.ok) {
+    if (!result || result.statusCode !== 200 || !result.stream) {
       return NextResponse.json(
-        { error: "Upstream Alpha API failed", status: response.status, detail: text.slice(0, 500) },
-        { status: 502 },
+        {
+          error: "Alpha snapshot has not been published yet",
+          detail: "The VPS uploader has not sent the first snapshot.",
+        },
+        { status: 503 },
       );
     }
 
+    const text = await new Response(result.stream).text();
     const data = JSON.parse(text);
 
     return NextResponse.json(data, {
@@ -42,7 +31,10 @@ export async function GET() {
     });
   } catch (error) {
     return NextResponse.json(
-      { error: "Alpha API is unavailable", detail: error instanceof Error ? error.message : String(error) },
+      {
+        error: "Alpha Blob snapshot is unavailable",
+        detail: error instanceof Error ? error.message : String(error),
+      },
       { status: 502 },
     );
   }
