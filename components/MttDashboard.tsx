@@ -7,37 +7,60 @@ import {
   useState,
 } from "react";
 
+import DashboardNav from "@/components/DashboardNav";
+
 const REFRESH_MS = 15_000;
 
-type RecordValue = Record<string, unknown>;
+type ValueMap = Record<string, unknown>;
 
-type TodayRecord = {
-  symbol?: string | null;
-  side?: string | null;
-  state?: string | null;
+type LifecycleStage = {
+  stage?: string;
+  label?: string;
+  status?: string;
+  time?: string | null;
+};
+
+type MttRecord = {
+  id?: string;
+  source?: string;
+  symbol?: string;
+  side?: string;
+  state?: string;
   outcome?: string | null;
   score?: number | null;
-  active?: boolean;
-  submitted?: boolean;
-  verified?: boolean;
-  terminal?: boolean;
+  entry?: number | null;
+  sl?: number | null;
+  tp?: number | null;
+  rr?: number | null;
+  risk_usd?: number | null;
+  quantity?: number | null;
+  pnl_usd?: number | null;
+  realized_r?: number | null;
   created_at?: string | null;
+  verified_at?: string | null;
+  opened_at?: string | null;
+  closed_at?: string | null;
+  reason?: string | null;
+  lifecycle?: LifecycleStage[];
 };
 
 type MttPayload = {
   status?: string;
   generated_at?: string | null;
-  account?: RecordValue;
-  policy?: RecordValue;
-  runtime?: RecordValue;
+  account?: ValueMap;
+  policy?: ValueMap;
+  health?: ValueMap;
+  runtime?: ValueMap;
+  performance?: ValueMap;
+  risk?: ValueMap;
   active_order_count?: number;
   active_position_count?: number;
-  current_orders?: RecordValue[];
-  current_positions?: RecordValue[];
-  today_records?: TodayRecord[];
+  journal_records?: MttRecord[];
 };
 
-function numberValue(value: unknown): number | null {
+function numberValue(
+  value: unknown,
+): number | null {
   if (
     typeof value === "number" &&
     Number.isFinite(value)
@@ -51,9 +74,9 @@ function numberValue(value: unknown): number | null {
   ) {
     const parsed = Number(value);
 
-    if (Number.isFinite(parsed)) {
-      return parsed;
-    }
+    return Number.isFinite(parsed)
+      ? parsed
+      : null;
   }
 
   return null;
@@ -72,7 +95,7 @@ function n(
   });
 }
 
-function money(value: unknown): string {
+function moneySigned(value: unknown): string {
   const parsed = numberValue(value);
 
   if (parsed === null) return "—";
@@ -88,7 +111,7 @@ function moneyPlain(value: unknown): string {
   return `${n(Math.abs(parsed), 2)} USD`;
 }
 
-function pct(value: unknown): string {
+function pctSigned(value: unknown): string {
   const parsed = numberValue(value);
 
   if (parsed === null) return "—";
@@ -103,7 +126,7 @@ function valueClass(value: unknown): string {
   return parsed > 0 ? "positive" : "negative";
 }
 
-function sideTickerClass(value: unknown): string {
+function sideClass(value: unknown): string {
   const side = String(value || "").toUpperCase();
 
   if (side === "LONG") return "ticker-long";
@@ -112,63 +135,14 @@ function sideTickerClass(value: unknown): string {
   return "";
 }
 
-function stateLabel(value: unknown): string {
-  const state = String(value || "UNKNOWN").toUpperCase();
-
-  const labels: Record<string, string> = {
-    SUBMITTED_VERIFIED: "Подтверждена",
-    CANCELLED_VERIFIED: "Отменена",
-    ACTIVE: "Активна",
-    OPEN: "Открыта",
-    FILLED: "Исполнена",
-    TP: "Тейк-профит",
-    SL: "Стоп-лосс",
-    WIN: "Победа",
-    LOSS: "Поражение",
-  };
-
-  return labels[state] || state.replaceAll("_", " ");
-}
-
-function statusClass(value: unknown): string {
-  const state = String(value || "").toUpperCase();
-
-  if (
-    state.includes("WIN") ||
-    state.includes("TP") ||
-    state.includes("VERIFIED") ||
-    state.includes("AVAILABLE")
-  ) {
-    return "good";
-  }
-
-  if (
-    state.includes("ACTIVE") ||
-    state.includes("OPEN") ||
-    state.includes("FILLED") ||
-    state.includes("SUBMITTED")
-  ) {
-    return "warn";
-  }
-
-  if (
-    state.includes("LOSS") ||
-    state.includes("SL") ||
-    state.includes("REJECT") ||
-    state.includes("FAIL")
-  ) {
-    return "bad";
-  }
-
-  return "neutral";
-}
-
 function formatTime(value: unknown): string {
   if (!value) return "—";
 
   const date = new Date(String(value));
 
-  if (!Number.isFinite(date.getTime())) return "—";
+  if (!Number.isFinite(date.getTime())) {
+    return "—";
+  }
 
   return date.toLocaleString("ru-RU", {
     day: "2-digit",
@@ -178,263 +152,156 @@ function formatTime(value: unknown): string {
   });
 }
 
-function firstValue(
-  row: RecordValue,
-  keys: string[],
-): unknown {
-  for (const key of keys) {
-    if (
-      row[key] !== null &&
-      row[key] !== undefined &&
-      row[key] !== ""
-    ) {
-      return row[key];
-    }
-  }
+function freshness(value: unknown): string {
+  const seconds = numberValue(value);
 
-  return null;
+  if (seconds === null) return "нет данных";
+  if (seconds < 60) return `${Math.round(seconds)} сек назад`;
+
+  return `${Math.round(seconds / 60)} мин назад`;
 }
 
-function TruthDealCard({
-  row,
-  kind,
+function healthClass(value: unknown): string {
+  const status = String(value || "").toUpperCase();
+
+  if (status === "WORKING") return "health-working";
+  if (status === "DELAYED") return "health-delayed";
+
+  return "health-error";
+}
+
+function stateLabel(value: unknown): string {
+  const status = String(value || "UNKNOWN").toUpperCase();
+
+  const labels: Record<string, string> = {
+    ARMED_WAITING_MTT: "Ждёт новый MTT-сигнал",
+    ORDER_VERIFIED: "Ордер подтверждён",
+    POSITION_ACTIVE: "Позиция открыта",
+    SIGNAL_VERIFIED: "Сигнал подтверждён",
+    CLOSED: "Сделка закрыта",
+    WIN: "Победа",
+    LOSS: "Поражение",
+  };
+
+  return labels[status] || status.replaceAll("_", " ");
+}
+
+function TradeCard({
+  record,
 }: {
-  row: RecordValue;
-  kind: "Ордер" | "Позиция";
+  record: MttRecord;
 }) {
-  const symbol = firstValue(
-    row,
-    ["symbol", "instrument", "market"],
-  );
-
-  const side = firstValue(
-    row,
-    ["side", "direction"],
-  );
-
-  const state = firstValue(
-    row,
-    ["status", "state"],
-  );
-
-  const entry = firstValue(
-    row,
-    [
-      "entry",
-      "entry_price",
-      "average_entry",
-      "avg_entry_price",
-      "price",
-      "limit_price",
-    ],
-  );
-
   return (
     <details className="deal-card">
       <summary className="deal-summary">
         <div className="deal-main">
-          <strong className={sideTickerClass(side)}>
-            {String(symbol || kind)}
+          <strong className={sideClass(record.side)}>
+            {record.symbol || "—"}
           </strong>
-          <span>{String(side || "—")}</span>
+          <span>{record.side || "—"}</span>
         </div>
 
-        <span
-          className={`pill ${statusClass(state)}`}
-        >
-          {stateLabel(state || kind)}
+        <span className="pill neutral">
+          {stateLabel(record.outcome || record.state)}
         </span>
 
         <div className="deal-time">
           {formatTime(
-            firstValue(
-              row,
-              [
-                "opened_at",
-                "created_at",
-                "updated_at",
-              ],
-            ),
+            record.closed_at ||
+            record.opened_at ||
+            record.verified_at ||
+            record.created_at,
           )}
         </div>
 
         <div className="deal-result">
-          <span>{kind}</span>
-          <strong>
-            {n(entry, 8)}
+          <span>
+            {record.outcome
+              ? "Итог"
+              : "Score"}
+          </span>
+          <strong
+            className={valueClass(record.pnl_usd)}
+          >
+            {record.outcome
+              ? moneySigned(record.pnl_usd)
+              : n(record.score, 1)}
           </strong>
         </div>
       </summary>
 
       <div className="deal-details">
         <div>
-          <span>Entry / Limit</span>
-          <strong>{n(entry, 8)}</strong>
+          <span>Entry</span>
+          <strong>{n(record.entry, 8)}</strong>
         </div>
 
         <div>
           <span>Stop Loss</span>
-          <strong>
-            {n(
-              firstValue(
-                row,
-                ["stop_loss", "sl"],
-              ),
-              8,
-            )}
-          </strong>
+          <strong>{n(record.sl, 8)}</strong>
         </div>
 
         <div>
           <span>Take Profit</span>
-          <strong>
-            {n(
-              firstValue(
-                row,
-                ["take_profit", "tp"],
-              ),
-              8,
-            )}
-          </strong>
+          <strong>{n(record.tp, 8)}</strong>
         </div>
 
         <div>
           <span>RR</span>
-          <strong>
-            {n(row.rr, 2)}
-          </strong>
+          <strong>{n(record.rr, 2)}R</strong>
         </div>
 
         <div>
           <span>Score</span>
-          <strong>
-            {n(
-              firstValue(
-                row,
-                ["score", "confidence"],
-              ),
-              1,
-            )}
-          </strong>
+          <strong>{n(record.score, 1)}</strong>
         </div>
 
         <div>
           <span>Риск</span>
-          <strong>
-            {moneyPlain(row.risk_usd)}
-          </strong>
+          <strong>{moneyPlain(record.risk_usd)}</strong>
         </div>
 
         <div>
           <span>Размер</span>
-          <strong>
-            {n(
-              firstValue(
-                row,
-                [
-                  "quantity",
-                  "size",
-                  "position_size",
-                ],
-              ),
-              8,
-            )}
-          </strong>
+          <strong>{n(record.quantity, 8)}</strong>
         </div>
 
         <div>
-          <span>PnL</span>
-          <strong
-            className={valueClass(
-              firstValue(
-                row,
-                [
-                  "pnl_usd",
-                  "unrealized_pnl_usd",
-                  "realized_pnl_usd",
-                  "pnl",
-                ],
-              ),
-            )}
-          >
-            {money(
-              firstValue(
-                row,
-                [
-                  "pnl_usd",
-                  "unrealized_pnl_usd",
-                  "realized_pnl_usd",
-                  "pnl",
-                ],
-              ),
-            )}
-          </strong>
+          <span>Причина</span>
+          <strong>{record.reason || "—"}</strong>
         </div>
       </div>
-    </details>
-  );
-}
 
-function TodayDealCard({
-  row,
-}: {
-  row: TodayRecord;
-}) {
-  return (
-    <details className="deal-card">
-      <summary className="deal-summary">
-        <div className="deal-main">
-          <strong className={sideTickerClass(row.side)}>
-            {row.symbol || "—"}
-          </strong>
-          <span>{row.side || "—"}</span>
-        </div>
+      <div className="trade-lifecycle">
+        {(record.lifecycle || []).map(
+          (stage, index) => (
+            <div
+              key={`${stage.stage}-${index}`}
+              className={`lifecycle-stage ${
+                stage.status === "DONE"
+                  ? "lifecycle-done"
+                  : "lifecycle-waiting"
+              }`}
+            >
+              <span className="lifecycle-dot" />
 
-        <span
-          className={`pill ${statusClass(
-            row.outcome || row.state,
-          )}`}
+              <div>
+                <strong>{stage.label || stage.stage}</strong>
+                <small>{formatTime(stage.time)}</small>
+              </div>
+            </div>
+          ),
+        )}
+      </div>
+
+      {record.id ? (
+        <a
+          className="journal-detail-link"
+          href={`/journal/${encodeURIComponent(record.id)}`}
         >
-          {stateLabel(
-            row.outcome || row.state,
-          )}
-        </span>
-
-        <div className="deal-time">
-          {formatTime(row.created_at)}
-        </div>
-
-        <div className="deal-result">
-          <span>Score</span>
-          <strong>{n(row.score, 1)}</strong>
-        </div>
-      </summary>
-
-      <div className="deal-details">
-        <div>
-          <span>Статус</span>
-          <strong>{stateLabel(row.state)}</strong>
-        </div>
-
-        <div>
-          <span>Итог</span>
-          <strong>
-            {row.outcome
-              ? stateLabel(row.outcome)
-              : "Пока нет"}
-          </strong>
-        </div>
-
-        <div>
-          <span>Score</span>
-          <strong>{n(row.score, 1)}</strong>
-        </div>
-
-        <div>
-          <span>Время сигнала</span>
-          <strong>{formatTime(row.created_at)}</strong>
-        </div>
-      </div>
+          Открыть подробную страницу сделки →
+        </a>
+      ) : null}
     </details>
   );
 }
@@ -454,7 +321,7 @@ export default function MttDashboard() {
 
     try {
       const response = await fetch(
-        `/api/dashboard?mtt_account=${Date.now()}`,
+        `/api/dashboard?mtt_v2=${Date.now()}`,
         { cache: "no-store" },
       );
 
@@ -476,7 +343,7 @@ export default function MttDashboard() {
       ) {
         throw new Error(
           payload?.reason ||
-          "Account truth MTT недоступен",
+          "MTT account truth недоступен",
         );
       }
 
@@ -506,17 +373,15 @@ export default function MttDashboard() {
 
   const account = data?.account || {};
   const policy = data?.policy || {};
+  const health = data?.health || {};
   const runtime = data?.runtime || {};
+  const performance = data?.performance || {};
+  const risk = data?.risk || {};
 
-  const orders = data?.current_orders || [];
-  const positions = data?.current_positions || [];
-  const today = data?.today_records || [];
-
-  const updated = data?.generated_at
-    ? new Date(
-        data.generated_at,
-      ).toLocaleString("ru-RU")
-    : "—";
+  const records = useMemo(
+    () => data?.journal_records || [],
+    [data],
+  );
 
   const totalPnl =
     numberValue(account.total_pnl_usd);
@@ -524,19 +389,14 @@ export default function MttDashboard() {
   const totalPnlPct =
     numberValue(account.total_pnl_pct);
 
-  const todaySorted = useMemo(
-    () =>
-      [...today].sort(
-        (a, b) =>
-          new Date(
-            b.created_at || 0,
-          ).getTime() -
-          new Date(
-            a.created_at || 0,
-          ).getTime(),
-      ),
-    [today],
-  );
+  const winRate =
+    numberValue(performance.win_rate_pct);
+
+  const updated = data?.generated_at
+    ? new Date(
+        data.generated_at,
+      ).toLocaleString("ru-RU")
+    : "—";
 
   return (
     <main className="shell">
@@ -549,19 +409,33 @@ export default function MttDashboard() {
           <h1>Real Account Dashboard</h1>
 
           <p>
-            Актуальная read-only статистика
-            реального Upscale-счёта.
+            Реальный Upscale account truth,
+            автоторговля и статистика MTT.
           </p>
         </div>
 
         <div className="topbar-right">
-          <span
-            className={`pill ${error ? "bad" : "good"}`}
+          <div
+            className={`autotrade-health ${healthClass(
+              health.status,
+            )}`}
+            title={String(health.reason || "")}
           >
-            {error
-              ? "Нет обновления"
-              : "Account truth работает"}
-          </span>
+            <span className="health-dot" />
+            <div>
+              <strong>
+                {String(
+                  health.label ||
+                  "Проверяем автоторговлю",
+                )}
+              </strong>
+              <small>
+                {freshness(
+                  health.freshness_age_seconds,
+                )}
+              </small>
+            </div>
+          </div>
 
           <button
             onClick={load}
@@ -578,12 +452,7 @@ export default function MttDashboard() {
         </div>
       </header>
 
-      <div className="dashboard-switch">
-        <a href="/">Alpha</a>
-        <span className="dashboard-switch-active">
-          Upscale / MTT
-        </span>
-      </div>
+      <DashboardNav active="mtt" />
 
       {error ? (
         <div className="error-banner">
@@ -606,18 +475,6 @@ export default function MttDashboard() {
 
         <div className="card metric-card">
           <div className="metric-label">
-            Текущий equity
-          </div>
-          <div className="metric-value">
-            {n(account.current_equity_usd, 2)} USD
-          </div>
-          <div className="metric-hint">
-            С учётом открытого PnL
-          </div>
-        </div>
-
-        <div className="card metric-card">
-          <div className="metric-label">
             Общий PnL
           </div>
           <div
@@ -625,26 +482,10 @@ export default function MttDashboard() {
               totalPnl,
             )}`}
           >
-            {money(totalPnl)}
+            {moneySigned(totalPnl)}
           </div>
           <div className="metric-hint">
-            От стартовых 10 000 USD
-          </div>
-        </div>
-
-        <div className="card metric-card">
-          <div className="metric-label">
-            Доходность
-          </div>
-          <div
-            className={`metric-value ${valueClass(
-              totalPnlPct,
-            )}`}
-          >
-            {pct(totalPnlPct)}
-          </div>
-          <div className="metric-hint">
-            От стартового депозита
+            {pctSigned(totalPnlPct)}
           </div>
         </div>
 
@@ -653,13 +494,46 @@ export default function MttDashboard() {
             Риск на сделку
           </div>
           <div className="metric-value">
-            {moneyPlain(policy.risk_per_trade_usd)}
+            {moneyPlain(
+              policy.risk_per_trade_usd,
+            )}
           </div>
           <div className="metric-hint">
             {n(
               policy.risk_per_trade_pct,
               2,
             )}% от equity
+          </div>
+        </div>
+
+        <div className="card metric-card">
+          <div className="metric-label">
+            MTT Win rate
+          </div>
+          <div className="metric-value">
+            {winRate === null
+              ? "—"
+              : `${n(winRate, 2)}%`}
+          </div>
+          <div className="metric-hint">
+            Выборка: {n(
+              performance.sample_size,
+              0,
+            )} закрытых real-сделок
+          </div>
+        </div>
+
+        <div className="card metric-card">
+          <div className="metric-label">
+            Открытый риск
+          </div>
+          <div className="metric-value">
+            {moneyPlain(
+              risk.current_open_risk_usd,
+            )}
+          </div>
+          <div className="metric-hint">
+            Все текущие сделки
           </div>
         </div>
 
@@ -680,23 +554,39 @@ export default function MttDashboard() {
 
       <section className="compact-results">
         <div>
-          <span>Минимальный Score</span>
+          <span>Победы / поражения</span>
           <strong>
-            {n(policy.minimum_score, 0)}
+            {n(performance.wins, 0)}
+            {" / "}
+            {n(performance.losses, 0)}
           </strong>
         </div>
 
         <div>
-          <span>Минимальный RR</span>
+          <span>Profit factor</span>
           <strong>
-            {n(policy.minimum_rr, 1)}R
+            {n(performance.profit_factor, 2)}
           </strong>
         </div>
 
         <div>
-          <span>Плечо</span>
+          <span>Средний результат</span>
           <strong>
-            {n(policy.leverage, 0)}×
+            {numberValue(performance.average_r) === null
+              ? "—"
+              : `${n(performance.average_r, 3)}R`}
+          </strong>
+        </div>
+
+        <div>
+          <span>Лимит сделок в день</span>
+          <strong>Нет</strong>
+        </div>
+
+        <div>
+          <span>Защита одного цикла</span>
+          <strong>
+            1 submit / сигнал
           </strong>
         </div>
 
@@ -712,100 +602,46 @@ export default function MttDashboard() {
         <div className="section-head">
           <div>
             <div className="eyebrow">
-              ТЕКУЩИЙ UPSCALE
+              MTT LIFECYCLE
             </div>
-            <h2>Открытые ордера и позиции</h2>
+
+            <h2>Реальные сделки MTT</h2>
+
             <p className="section-description">
-              Только актуальное состояние реального
-              счёта.
+              Сигнал, проверка, ордер, позиция
+              и окончательный результат.
             </p>
           </div>
+
+          <a
+            className="section-link"
+            href="/journal?source=MTT_REAL"
+          >
+            Открыть дневник →
+          </a>
         </div>
 
-        {orders.length || positions.length ? (
+        {records.length ? (
           <div className="deal-list">
-            {orders.map((row, index) => (
-              <TruthDealCard
-                key={`order-${index}`}
-                row={row}
-                kind="Ордер"
-              />
-            ))}
-
-            {positions.map((row, index) => (
-              <TruthDealCard
-                key={`position-${index}`}
-                row={row}
-                kind="Позиция"
+            {records.map((record) => (
+              <TradeCard
+                key={record.id}
+                record={record}
               />
             ))}
           </div>
         ) : (
           <div className="empty-inline">
-            Сейчас на реальном счёте нет активных
-            ордеров и позиций.
-          </div>
-        )}
-
-        {!orders.length &&
-        numberValue(data?.active_order_count) !== null &&
-        Number(data?.active_order_count) > 0 ? (
-          <div className="data-warning">
-            Upscale сообщает об активном ордере,
-            но подробная account-truth запись пока
-            не опубликована источником.
-          </div>
-        ) : null}
-
-        {!positions.length &&
-        numberValue(data?.active_position_count) !== null &&
-        Number(data?.active_position_count) > 0 ? (
-          <div className="data-warning">
-            Upscale сообщает об активной позиции,
-            но подробная account-truth запись пока
-            не опубликована источником.
-          </div>
-        ) : null}
-      </section>
-
-      <section className="card section-card">
-        <div className="section-head">
-          <div>
-            <div className="eyebrow">
-              СЕГОДНЯ
-            </div>
-            <h2>История MTT за текущий день</h2>
-            <p className="section-description">
-              Старые июльские записи полностью
-              исключены.
-            </p>
-          </div>
-
-          <span className="subtle">
-            Записей: {todaySorted.length}
-          </span>
-        </div>
-
-        {todaySorted.length ? (
-          <div className="deal-list">
-            {todaySorted.map((row, index) => (
-              <TodayDealCard
-                key={`${row.symbol}-${row.created_at}-${index}`}
-                row={row}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="empty-inline">
-            Сегодня MTT ещё не открыл и не закрыл
-            новых сделок.
+            После активации чистого дневника
+            закрытых или открытых real-сделок
+            MTT пока нет.
           </div>
         )}
       </section>
 
       <footer>
-        Upscale / MTT · реальный счёт ·
-        read-only dashboard
+        Upscale / MTT · real account ·
+        read-only statistics
       </footer>
     </main>
   );

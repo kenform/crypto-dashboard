@@ -1,5 +1,7 @@
 "use client";
 
+import DashboardNav from "@/components/DashboardNav";
+
 import {
   useCallback,
   useEffect,
@@ -501,12 +503,7 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="dashboard-switch">
-        <span className="dashboard-switch-active">
-          Alpha
-        </span>
-        <a href="/mtt">Upscale / MTT</a>
-      </div>
+      <DashboardNav active="intraday" />
 
       <section className="metrics-grid">
         <div className="card metric-card">
