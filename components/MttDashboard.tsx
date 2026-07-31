@@ -250,6 +250,46 @@ function sideLabel(value: unknown): string {
   return side || "—";
 }
 
+function statePillClass(
+  value: unknown,
+): string {
+  const state = String(
+    value || "",
+  ).toUpperCase();
+
+  if (
+    state === "POSITION_ACTIVE"
+    || state === "ORDER_ACTIVE"
+  ) {
+    return "mtt-state-active";
+  }
+
+  if (
+    state === "WIN"
+    || state === "CLOSED_TP"
+  ) {
+    return "mtt-state-win";
+  }
+
+  if (
+    state === "LOSS"
+    || state === "CLOSED_SL"
+  ) {
+    return "mtt-state-loss";
+  }
+
+  if (
+    state === "CLOSED"
+    || state === "POSITION_INACTIVE_PENDING_HISTORY"
+    || state === "ORDER_INACTIVE_UNRESOLVED"
+    || state === "CLOSED_OTHER"
+  ) {
+    return "mtt-state-closed";
+  }
+
+  return "neutral";
+}
+
 function TradeCard({
   record,
 }: {
@@ -265,7 +305,11 @@ function TradeCard({
           <span>{sideLabel(record.side)}</span>
         </div>
 
-        <span className="pill neutral">
+        <span
+          className={`pill ${statePillClass(
+            record.outcome || record.state,
+          )}`}
+        >
           {stateLabel(record.outcome || record.state)}
         </span>
 

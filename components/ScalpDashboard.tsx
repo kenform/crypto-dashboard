@@ -380,14 +380,6 @@ export default function ScalpDashboard() {
           </strong>
         </div>
 
-        <div>
-          <span>Источник</span>
-          <strong>
-            {String(
-              health.source_file || "—",
-            )}
-          </strong>
-        </div>
       </section>
 
       <section className="card section-card">
