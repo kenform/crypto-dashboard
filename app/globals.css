@@ -172,12 +172,45 @@ p {
 .big-pill {
   display: inline-flex;
   align-items: center;
+  gap: 7px;
   border: 1px solid currentColor;
   border-radius: 999px;
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 850;
   letter-spacing: 0.05em;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.big-pill.good .status-dot {
+  box-shadow: 0 0 0 0 rgba(140, 255, 177, 0.58);
+  animation: livePulse 1.9s ease-out infinite;
+}
+
+@keyframes livePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(140, 255, 177, 0.52);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(140, 255, 177, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(140, 255, 177, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .big-pill.good .status-dot {
+    animation: none;
+  }
 }
 
 .hero-quick-grid {

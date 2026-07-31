@@ -65,7 +65,8 @@ function statusClass(value: unknown): string {
     v.includes("WATCH") ||
     v.includes("OBSERVING") ||
     v.includes("FRESH") ||
-    v.includes("DELAY")
+    v.includes("DELAY") ||
+    v.includes("CHECKING")
   ) return "warn";
 
   if (
@@ -520,18 +521,26 @@ export default function Dashboard() {
       ? Math.max(0, Math.round((Date.now() - new Date(generatedAt).getTime()) / 1000))
       : null;
 
-  const freshness =
-    error
-      ? "ERROR"
-      : snapshotAgeSeconds === null
-        ? "UNKNOWN"
-        : snapshotAgeSeconds <= 180
-          ? "LIVE"
-          : snapshotAgeSeconds <= 600
-            ? "DELAYED"
-            : "STALE";
+  const hasLiveData = Boolean(data);
+  const refreshWarning = Boolean(error && data);
 
-  const apiState = error ? "OFFLINE" : data ? "ONLINE" : "LOADING";
+  const freshness =
+    snapshotAgeSeconds === null
+      ? "CHECKING"
+      : snapshotAgeSeconds <= 180
+        ? "LIVE"
+        : snapshotAgeSeconds <= 600
+          ? "DELAYED"
+          : "STALE";
+
+  const apiState =
+    data
+      ? refreshWarning
+        ? "DELAYED"
+        : "ONLINE"
+      : error
+        ? "OFFLINE"
+        : "CHECKING";
   const health = text(pipeline.pipeline_health || quality.pipeline_health, "UNKNOWN");
   const review = text(quality.review_state, "COLLECTING");
   const reviewReason = text(quality.review_reason, "—");
@@ -540,11 +549,33 @@ export default function Dashboard() {
   const demoOff = safety.demo_submit === false && quality.demo_submit === false;
   const orderOff = safety.order_action === false && quality.order_action === false;
 
-  const systemWorks = freshness === "LIVE" || freshness === "DELAYED";
+  const systemWorks =
+    hasLiveData && (freshness === "LIVE" || freshness === "DELAYED");
+
   const understandableSummary =
     trades.length > 0
       ? `Система уже записала ${trades.length} сделок в clean cohort.`
       : "Система работает, но clean cohort пока ещё набирает статистику.";
+
+  const statusTitle =
+    !data && !error
+      ? "Проверяем подключение…"
+      : systemWorks && !refreshWarning
+        ? "Да, сайт работает"
+        : data && refreshWarning
+          ? "Данные есть, обновление задержалось"
+          : data
+            ? "Последний snapshot доступен"
+            : "Сайт временно не получает данные";
+
+  const statusDescription =
+    !data && !error
+      ? "Подключаемся к live API и загружаем последний snapshot. Обычно это занимает несколько секунд."
+      : data && refreshWarning
+        ? `${understandableSummary} Последняя попытка автообновления задержалась, но предыдущий snapshot сохранён на экране.`
+        : error
+          ? `Не удалось получить первый snapshot: ${error}`
+          : understandableSummary;
 
   return (
     <main className="shell">
@@ -579,15 +610,14 @@ export default function Dashboard() {
       <section className="hero-status-grid">
         <div className="card hero-main">
           <div className="eyebrow">С ПЕРВОГО ВЗГЛЯДА</div>
-          <h2>{systemWorks ? "Да, сайт работает" : "Нужна проверка статуса"}</h2>
-          <p className="hero-main-copy">
-            {error
-              ? `Последняя ошибка: ${error}`
-              : understandableSummary}
-          </p>
+          <h2>{statusTitle}</h2>
+          <p className="hero-main-copy">{statusDescription}</p>
 
           <div className="hero-badges">
-            <span className={`big-pill ${statusClass(apiState)}`}>API {apiState}</span>
+            <span className={`big-pill ${statusClass(apiState)}`}>
+              <span className="status-dot" aria-hidden="true" />
+              API {apiState}
+            </span>
             <span className={`big-pill ${statusClass(freshness)}`}>Данные {freshness}</span>
             <span className={`big-pill ${realOff ? "good" : "bad"}`}>REAL {realOff ? "OFF" : "CHECK"}</span>
             <span className={`big-pill ${demoOff ? "good" : "bad"}`}>DEMO {demoOff ? "OFF" : "CHECK"}</span>
