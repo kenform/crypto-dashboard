@@ -25,6 +25,9 @@ html {
 
 body {
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   margin: 0;
   color: var(--text);
   background:
@@ -112,7 +115,7 @@ button:disabled {
 
 h1 {
   margin: 4px 0 8px;
-  font-size: clamp(38px, 5vw, 66px);
+  font-size: clamp(36px, 4.6vw, 58px);
   line-height: 0.98;
   letter-spacing: -0.055em;
 }
@@ -135,6 +138,60 @@ p {
   font-size: 11px;
   font-weight: 850;
   letter-spacing: 0.18em;
+}
+
+.page-nav {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  display: flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 5px;
+  margin: 0 0 12px auto;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid rgba(39, 50, 70, 0.82);
+  border-radius: 13px;
+  background: rgba(10, 15, 24, 0.88);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(14px);
+}
+
+.page-nav a {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 720;
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.page-nav a:hover {
+  color: var(--text);
+  background: rgba(122, 167, 255, 0.1);
+}
+
+.tech-details {
+  margin-top: 14px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.tech-details summary {
+  padding: 13px 0 3px;
+  color: var(--accent-2);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tech-details[open] summary {
+  margin-bottom: 4px;
 }
 
 .card {
@@ -396,7 +453,7 @@ p {
 .chart-empty {
   display: grid;
   place-items: center;
-  min-height: 212px;
+  min-height: 138px;
   margin-top: 15px;
   padding: 28px;
   border: 1px dashed var(--border);
@@ -407,7 +464,7 @@ p {
 }
 
 .section-card {
-  padding: 20px;
+  padding: 18px;
   margin-bottom: 12px;
 }
 
@@ -725,6 +782,11 @@ footer {
 }
 
 @media (max-width: 760px) {
+  .page-nav {
+    width: 100%;
+    margin-left: 0;
+  }
+
   .shell {
     width: min(100% - 18px, 1540px);
     padding-top: 18px;

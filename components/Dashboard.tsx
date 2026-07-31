@@ -81,6 +81,28 @@ function statusClass(value: unknown): string {
   return "neutral";
 }
 
+function friendlyStatus(value: unknown): string {
+  const status = text(value, "—").toUpperCase();
+
+  const labels: Record<string, string> = {
+    LIVE: "Данные актуальны",
+    ONLINE: "API работает",
+    HEALTHY: "Система работает",
+    PAPER_ONLY: "Только paper",
+    PAPER: "Только paper",
+    COLLECTING: "Сбор статистики",
+    FRESH: "Актуально",
+    CHECKING: "Проверяем",
+    DELAYED: "Есть задержка",
+    STALE: "Данные устарели",
+    OFFLINE: "Нет соединения",
+    UNKNOWN: "Нет данных",
+    PASS: "Работает",
+  };
+
+  return labels[status] || status.replaceAll("_", " ");
+}
+
 function valueClass(value: number | null): string {
   if (value === null || value === 0) return "";
   return value > 0 ? "positive" : "negative";
@@ -591,9 +613,9 @@ export default function Dashboard() {
 
         <div className="topbar-right">
           <div className="topbar-pills">
-            <span className={`pill ${statusClass(freshness)}`}>{freshness}</span>
-            <span className={`pill ${statusClass(health)}`}>{health}</span>
-            <span className="pill neutral">{text(data?.mode, "PAPER_ONLY")}</span>
+            <span className={`pill ${statusClass(freshness)}`}>{friendlyStatus(freshness)}</span>
+            <span className={`pill ${statusClass(health)}`}>{friendlyStatus(health)}</span>
+            <span className="pill neutral">{friendlyStatus(data?.mode || "PAPER_ONLY")}</span>
           </div>
 
           <button onClick={load} disabled={refreshing}>
@@ -607,7 +629,15 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <section className="hero-status-grid">
+      <nav className="page-nav" aria-label="Разделы dashboard">
+        <a href="#overview">Сводка</a>
+        <a href="#performance">Результаты</a>
+        <a href="#system">Система</a>
+        <a href="#activity">Рынок</a>
+        <a href="#trades">Сделки</a>
+      </nav>
+
+      <section className="hero-status-grid" id="overview">
         <div className="card hero-main">
           <div className="eyebrow">С ПЕРВОГО ВЗГЛЯДА</div>
           <h2>{statusTitle}</h2>
@@ -616,9 +646,9 @@ export default function Dashboard() {
           <div className="hero-badges">
             <span className={`big-pill ${statusClass(apiState)}`}>
               <span className="status-dot" aria-hidden="true" />
-              API {apiState}
+              {friendlyStatus(apiState)}
             </span>
-            <span className={`big-pill ${statusClass(freshness)}`}>Данные {freshness}</span>
+            <span className={`big-pill ${statusClass(freshness)}`}>{friendlyStatus(freshness)}</span>
             <span className={`big-pill ${realOff ? "good" : "bad"}`}>REAL {realOff ? "OFF" : "CHECK"}</span>
             <span className={`big-pill ${demoOff ? "good" : "bad"}`}>DEMO {demoOff ? "OFF" : "CHECK"}</span>
             <span className={`big-pill ${orderOff ? "good" : "bad"}`}>ORDERS {orderOff ? "OFF" : "CHECK"}</span>
@@ -694,7 +724,7 @@ export default function Dashboard() {
         />
       </section>
 
-      <section className="chart-grid">
+      <section className="chart-grid" id="performance">
         <CurveChart
           eyebrow="PERFORMANCE / R"
           title="Cumulative R"
@@ -714,7 +744,7 @@ export default function Dashboard() {
         />
       </section>
 
-      <section className="two-col">
+      <section className="two-col" id="system">
         <PlainCard eyebrow="ПОЧЕМУ ПОКА МОЖЕТ БЫТЬ ПУСТО" title="Почему нет сделок">
           <div className="why-grid">
             <div className="why-card">
@@ -750,39 +780,43 @@ export default function Dashboard() {
           <div className="health-grid">
             <div className="health-item">
               <span>API</span>
-              <strong className={statusClass(apiState)}>{apiState}</strong>
+              <strong className={statusClass(apiState)}>{friendlyStatus(apiState)}</strong>
             </div>
             <div className="health-item">
               <span>Свежесть данных</span>
-              <strong className={statusClass(freshness)}>{freshness}</strong>
+              <strong className={statusClass(freshness)}>{friendlyStatus(freshness)}</strong>
             </div>
             <div className="health-item">
               <span>Pipeline</span>
-              <strong className={statusClass(health)}>{health}</strong>
+              <strong className={statusClass(health)}>{friendlyStatus(health)}</strong>
             </div>
             <div className="health-item">
               <span>Режим</span>
-              <strong>{text(data?.mode, "PAPER_ONLY")}</strong>
+              <strong>{friendlyStatus(data?.mode || "PAPER_ONLY")}</strong>
             </div>
           </div>
 
-          <div className="stage-list">
-            {stageRows.length ? (
-              stageRows.map((stage, index) => (
-                <div className="stage" key={`${text(stage.name)}-${index}`}>
-                  <span>{stageLabel(stage.name)}</span>
-                  <span className={`pill ${statusClass(stage.status)}`}>{text(stage.status)}</span>
-                  <span className="subtle">{n(stage.age_seconds, 0)}s</span>
-                </div>
-              ))
-            ) : (
-              <div className="empty-inline">Пока нет данных по техническим этапам.</div>
-            )}
-          </div>
+          <details className="tech-details">
+            <summary>Показать технические этапы</summary>
+
+            <div className="stage-list">
+              {stageRows.length ? (
+                stageRows.map((stage, index) => (
+                  <div className="stage" key={`${text(stage.name)}-${index}`}>
+                    <span>{stageLabel(stage.name)}</span>
+                    <span className={`pill ${statusClass(stage.status)}`}>{friendlyStatus(stage.status)}</span>
+                    <span className="subtle">{n(stage.age_seconds, 0)}s</span>
+                  </div>
+                ))
+              ) : (
+                <div className="empty-inline">Пока нет данных по техническим этапам.</div>
+              )}
+            </div>
+          </details>
         </PlainCard>
       </section>
 
-      <section className="two-col">
+      <section className="two-col" id="activity">
         <PlainCard eyebrow="АКТИВНОСТЬ СТРАТЕГИИ" title="Что фильтр видит по рынку">
           {["1h", "6h", "24h"].map((windowName) => {
             const row = windows[windowName] || {};
@@ -821,7 +855,7 @@ export default function Dashboard() {
         </PlainCard>
       </section>
 
-      <section className="card section-card">
+      <section className="card section-card" id="trades">
         <div className="section-head">
           <div>
             <div className="eyebrow">ИСТОРИЯ СДЕЛОК</div>
