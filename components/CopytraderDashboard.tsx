@@ -63,6 +63,10 @@ type Position = {
   closed_at?: string | null;
   upscale_supported?: boolean | null;
   upscale_status?: string | null;
+  position_ref?: string | null;
+  mapping_status?: string | null;
+  position_key_verified?: boolean | null;
+  margin_allocation_usd?: number | null;
 };
 
 type UpscaleInventory = {
@@ -342,9 +346,14 @@ function PositionsTable({
                     </strong>
 
                     <span className="subline">
-                      {position.leverage
-                        ? `x${position.leverage}`
-                        : "PAPER"}
+                      ID{" "}
+                      {(
+                        position.position_ref ||
+                        position.id ||
+                        "—"
+                      )
+                        .slice(0, 8)
+                        .toUpperCase()}
                     </span>
                   </td>
 
@@ -385,7 +394,7 @@ function PositionsTable({
                     </strong>
 
                     <span className="subline">
-                      не фиксированный риск
+                      доля капитала, не стоп-риск
                     </span>
                   </td>
 
@@ -554,7 +563,7 @@ export default function CopytraderDashboard() {
   return (
     <main
       className="copy-page"
-      data-product-schema="BROM_COPYTRADER_PRODUCT_V2"
+      data-product-schema="BROM_COPYTRADER_PRODUCT_V2_1"
     >
       <header className="page-header">
         <div>
