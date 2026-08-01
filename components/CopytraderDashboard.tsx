@@ -1,7 +1,5 @@
 "use client";
 
-import DashboardNav from "@/components/DashboardNav";
-
 import {
   useCallback,
   useEffect,
@@ -9,9 +7,9 @@ import {
   useState,
 } from "react";
 
-const REFRESH_MS = 15_000;
+import DashboardNav from "@/components/DashboardNav";
 
-type CopySummary = {
+type Summary = {
   starting_balance_usd?: number | null;
   balance_usd?: number | null;
   equity_usd?: number | null;
@@ -25,44 +23,72 @@ type CopySummary = {
   win_rate_pct?: number | null;
 };
 
-type CopyPosition = {
-  id?: string;
-  lifecycle?: string;
-  trader?: string | null;
+type TraderStats = {
+  trader_id?: string | null;
+  label?: string | null;
+  exchange?: string | null;
+  win_rate_pct?: number | null;
+  profit_days?: number | null;
+  four_week_return_pct?: number | null;
+  four_week_proven?: boolean | null;
+  six_month_return_pct?: number | null;
+  six_month_proven?: boolean | null;
+  one_year_return_pct?: number | null;
+  one_year_proven?: boolean | null;
+  daily_points?: number | null;
+  weekly_points?: number | null;
+  source_span_days?: number | null;
+};
+
+type Position = {
+  id?: string | null;
   symbol?: string | null;
   side?: string | null;
+  lifecycle?: string | null;
+  exchange?: string | null;
+  trader?: string | null;
+  trader_label?: string | null;
+  source_trader_id?: string | null;
+  allocation_pct?: number | null;
+  capital_allocation_pct?: number | null;
+  leverage?: number | null;
+  quantity?: number | null;
   entry_price?: number | null;
   current_price?: number | null;
   exit_price?: number | null;
-  quantity?: number | null;
-  leverage?: number | null;
-  allocation_pct?: number | null;
-  realized_pnl_usd?: number | null;
   unrealized_pnl_usd?: number | null;
+  realized_pnl_usd?: number | null;
   return_pct?: number | null;
   opened_at?: string | null;
   closed_at?: string | null;
+  upscale_supported?: boolean | null;
+  upscale_status?: string | null;
 };
 
-type CopyQuality = {
-  collector_status?: string | null;
-  selected_traders?: number | null;
-  monitor_eligible?: number | null;
-  visible_positions?: number | null;
-  hidden_positions?: number | null;
-  truncated_traders?: number | null;
-  endpoint_failures?: number | null;
+type UpscaleInventory = {
+  proven?: boolean | null;
+  complete?: boolean | null;
+  filter_active?: boolean | null;
+  symbol_count?: number | null;
+  status?: string | null;
+  reason?: string | null;
+  copy_symbols?: string[] | null;
+  not_proven_symbols?: string[] | null;
 };
 
 type CopytraderData = {
+  product_schema?: string | null;
   status?: string | null;
   mode?: string | null;
   exchange?: string | null;
   generated_at?: string | null;
-  summary?: CopySummary;
-  open_positions?: CopyPosition[];
-  closed_positions?: CopyPosition[];
-  data_quality?: CopyQuality;
+  allocation_semantics?: string | null;
+  summary?: Summary | null;
+  portfolio?: Summary | null;
+  open_positions?: Position[] | null;
+  closed_positions?: Position[] | null;
+  trader_stats?: TraderStats[] | null;
+  upscale_inventory?: UpscaleInventory | null;
   sample_warning?: string | null;
   minimum_closed_for_review?: number | null;
 };
@@ -71,336 +97,354 @@ type DashboardResponse = {
   generated_at?: string | null;
   vps_published_at?: string | null;
   vercel_ingested_at?: string | null;
-  copytrader?: CopytraderData;
+  copytrader?: CopytraderData | null;
   error?: string;
   detail?: string;
 };
 
-const panel = {
-  border:
-    "1px solid rgba(148, 163, 184, 0.18)",
-  borderRadius: "16px",
-  background:
-    "rgba(15, 23, 42, 0.58)",
-  padding: "16px",
-} as const;
-
 function finite(
-  value: unknown,
+  value: number | null | undefined,
 ): number | null {
-  if (
-    typeof value === "number" &&
+  return typeof value === "number" &&
     Number.isFinite(value)
-  ) {
-    return value;
-  }
-
-  return null;
-}
-
-function n(
-  value: unknown,
-  digits = 2,
-): string {
-  const parsed = finite(value);
-
-  if (parsed === null) {
-    return "—";
-  }
-
-  return parsed.toLocaleString(
-    "ru-RU",
-    {
-      maximumFractionDigits: digits,
-    },
-  );
+    ? value
+    : null;
 }
 
 function money(
-  value: unknown,
+  value: number | null | undefined,
 ): string {
-  const parsed = finite(value);
+  const number = finite(value);
 
-  if (parsed === null) {
+  if (number === null) {
     return "—";
   }
 
-  return `${parsed > 0 ? "+" : ""}${n(
-    parsed,
-    2,
-  )} USD`;
+  return new Intl.NumberFormat(
+    "ru-RU",
+    {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 2,
+    },
+  ).format(number);
 }
 
 function percent(
-  value: unknown,
+  value: number | null | undefined,
+  signed = false,
 ): string {
-  const parsed = finite(value);
+  const number = finite(value);
 
-  if (parsed === null) {
+  if (number === null) {
     return "—";
   }
 
-  return `${parsed > 0 ? "+" : ""}${n(
-    parsed,
-    3,
-  )}%`;
+  const prefix =
+    signed && number > 0
+      ? "+"
+      : "";
+
+  return `${prefix}${number.toFixed(2)}%`;
 }
 
-function valueColor(
-  value: unknown,
-): string | undefined {
-  const parsed = finite(value);
+function price(
+  value: number | null | undefined,
+): string {
+  const number = finite(value);
 
-  if (parsed === null || parsed === 0) {
-    return undefined;
+  if (number === null) {
+    return "—";
   }
 
-  return parsed > 0
-    ? "#5eead4"
-    : "#fda4af";
+  return new Intl.NumberFormat(
+    "ru-RU",
+    {
+      maximumFractionDigits:
+        number >= 100
+          ? 2
+          : number >= 1
+            ? 5
+            : 8,
+    },
+  ).format(number);
 }
 
-function PositionTable({
-  title,
-  positions,
+function shortSymbol(
+  value: string | null | undefined,
+): string {
+  return String(value || "—")
+    .toUpperCase()
+    .replace(/-USDT-SWAP$/, "")
+    .replace(/-USDC-SWAP$/, "")
+    .replace(/-USD-SWAP$/, "")
+    .replace(/USDT$/, "")
+    .replace(/USDC$/, "");
+}
+
+function sideLabel(
+  value: string | null | undefined,
+): string {
+  const side = String(
+    value || "",
+  ).toUpperCase();
+
+  if (side === "LONG") {
+    return "Лонг";
+  }
+
+  if (side === "SHORT") {
+    return "Шорт";
+  }
+
+  return value || "—";
+}
+
+function pnlValue(
+  position: Position,
+): number | null {
+  return finite(
+    position.realized_pnl_usd,
+  ) ??
+    finite(
+      position.unrealized_pnl_usd,
+    );
+}
+
+function compactTrader(
+  position: Position,
+): string {
+  if (position.trader_label) {
+    return position.trader_label;
+  }
+
+  const raw = String(
+    position.source_trader_id ||
+      position.trader ||
+      "",
+  )
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .toUpperCase();
+
+  return raw
+    ? `Трейдер ${raw.slice(0, 8)}`
+    : "Трейдер не указан";
+}
+
+function pnlClass(
+  value: number | null | undefined,
+): string {
+  const number = finite(value);
+
+  if (number === null || number === 0) {
+    return "neutral";
+  }
+
+  return number > 0
+    ? "positive"
+    : "negative";
+}
+
+function upscaleLabel(
+  position: Position,
+): string {
+  if (
+    position.upscale_status ===
+      "SUPPORTED" ||
+    position.upscale_supported === true
+  ) {
+    return "Доступен";
+  }
+
+  if (
+    position.upscale_status ===
+      "NOT_SUPPORTED" ||
+    position.upscale_supported === false
+  ) {
+    return "Не доступен";
+  }
+
+  return "Не подтверждено";
+}
+
+function PositionsTable({
+  rows,
   closed,
 }: {
-  title: string;
-  positions: CopyPosition[];
+  rows: Position[];
   closed: boolean;
 }) {
+  if (!rows.length) {
+    return (
+      <div className="empty-state">
+        Пока нет позиций.
+      </div>
+    );
+  }
+
   return (
-    <section
-      style={{
-        marginTop: "22px",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent:
-            "space-between",
-          gap: "12px",
-          marginBottom: "10px",
-        }}
-      >
-        <h2
-          style={{
-            margin: 0,
-            fontSize: "18px",
-          }}
-        >
-          {title}
-        </h2>
+    <div className="table-shell">
+      <table className="compact-table">
+        <thead>
+          <tr>
+            <th>Инструмент</th>
+            <th>Сторона</th>
+            <th>Трейдер</th>
+            <th>Биржа</th>
+            <th>Доля капитала</th>
+            <th>Вход</th>
+            <th>
+              {closed
+                ? "Выход"
+                : "Текущая"}
+            </th>
+            <th>PnL</th>
+            <th>Upscale</th>
+          </tr>
+        </thead>
 
-        <span
-          style={{
-            fontSize: "11px",
-            opacity: 0.58,
-          }}
-        >
-          Записей: {positions.length}
-        </span>
-      </div>
+        <tbody>
+          {rows.map(
+            (
+              position,
+              index,
+            ) => {
+              const pnl =
+                pnlValue(position);
 
-      <div
-        style={{
-          overflowX: "auto",
-          border:
-            "1px solid rgba(148, 163, 184, 0.18)",
-          borderRadius: "16px",
-          background:
-            "rgba(15, 23, 42, 0.46)",
-        }}
-      >
-        <table
-          style={{
-            width: "100%",
-            minWidth: "930px",
-            borderCollapse: "collapse",
-            fontSize: "12px",
-          }}
-        >
-          <thead>
-            <tr
-              style={{
-                textAlign: "left",
-                opacity: 0.66,
-              }}
-            >
-              {[
-                "Трейдер",
-                "Монета",
-                "Сторона",
-                "Entry",
-                closed
-                  ? "Exit"
-                  : "Current",
-                closed
-                  ? "Realized PnL"
-                  : "Unrealized PnL",
-                "Return",
-                "Время",
-              ].map((label) => (
-                <th
-                  key={label}
-                  style={{
-                    padding: "12px",
-                    whiteSpace: "nowrap",
-                    borderBottom:
-                      "1px solid rgba(148, 163, 184, 0.15)",
-                  }}
+              const allocation =
+                finite(
+                  position
+                    .capital_allocation_pct,
+                ) ??
+                finite(
+                  position
+                    .allocation_pct,
+                );
+
+              return (
+                <tr
+                  key={
+                    position.id ||
+                    [
+                      position.symbol,
+                      position.side,
+                      position.trader,
+                      index,
+                    ].join(":")
+                  }
                 >
-                  {label}
-                </th>
-              ))}
-            </tr>
-          </thead>
+                  <td>
+                    <strong>
+                      {shortSymbol(
+                        position.symbol,
+                      )}
+                    </strong>
 
-          <tbody>
-            {positions.length ? (
-              positions.map(
-                (position, index) => {
-                  const pnl = closed
-                    ? position.realized_pnl_usd
-                    : position.unrealized_pnl_usd;
+                    <span className="subline">
+                      {position.leverage
+                        ? `x${position.leverage}`
+                        : "PAPER"}
+                    </span>
+                  </td>
 
-                  return (
-                    <tr
-                      key={
-                        position.id ||
-                        `${position.symbol}-${index}`
-                      }
+                  <td>
+                    <span
+                      className={`side-badge ${
+                        String(
+                          position.side ||
+                            "",
+                        ).toUpperCase() ===
+                        "LONG"
+                          ? "long"
+                          : "short"
+                      }`}
                     >
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {position.trader ||
-                          "—"}
-                      </td>
+                      {sideLabel(
+                        position.side,
+                      )}
+                    </span>
+                  </td>
 
-                      <td
-                        style={{
-                          padding: "12px",
-                          fontWeight: 800,
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {position.symbol ||
-                          "—"}
-                      </td>
+                  <td>
+                    {compactTrader(
+                      position,
+                    )}
+                  </td>
 
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {position.side ||
-                          "—"}
-                      </td>
+                  <td>
+                    {position.exchange ||
+                      "OKX"}
+                  </td>
 
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {n(
-                          position.entry_price,
-                          8,
-                        )}
-                      </td>
+                  <td>
+                    <strong>
+                      {percent(
+                        allocation,
+                      )}
+                    </strong>
 
-                      <td
-                        style={{
-                          padding: "12px",
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {n(
-                          closed
-                            ? position.exit_price
-                            : position.current_price,
-                          8,
-                        )}
-                      </td>
+                    <span className="subline">
+                      не фиксированный риск
+                    </span>
+                  </td>
 
-                      <td
-                        style={{
-                          padding: "12px",
-                          fontWeight: 800,
-                          color:
-                            valueColor(pnl),
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {money(pnl)}
-                      </td>
+                  <td>
+                    {price(
+                      position.entry_price,
+                    )}
+                  </td>
 
-                      <td
-                        style={{
-                          padding: "12px",
-                          color:
-                            valueColor(
-                              position.return_pct,
-                            ),
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {percent(
-                          position.return_pct,
-                        )}
-                      </td>
+                  <td>
+                    {price(
+                      closed
+                        ? position.exit_price
+                        : position.current_price,
+                    )}
+                  </td>
 
-                      <td
-                        style={{
-                          padding: "12px",
-                          whiteSpace: "nowrap",
-                          opacity: 0.64,
-                          borderBottom:
-                            "1px solid rgba(148, 163, 184, 0.08)",
-                        }}
-                      >
-                        {closed
-                          ? position.closed_at ||
-                            "—"
-                          : position.opened_at ||
-                            "—"}
-                      </td>
-                    </tr>
-                  );
-                },
-              )
-            ) : (
-              <tr>
-                <td
-                  colSpan={8}
-                  style={{
-                    padding: "24px",
-                    textAlign: "center",
-                    opacity: 0.55,
-                  }}
-                >
-                  Пока данных нет
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
+                  <td>
+                    <strong
+                      className={pnlClass(
+                        pnl,
+                      )}
+                    >
+                      {money(pnl)}
+                    </strong>
+
+                    <span
+                      className={`subline ${pnlClass(
+                        position.return_pct,
+                      )}`}
+                    >
+                      {percent(
+                        position.return_pct,
+                        true,
+                      )}
+                    </span>
+                  </td>
+
+                  <td>
+                    <span
+                      className={`availability ${
+                        position.upscale_status ===
+                        "SUPPORTED"
+                          ? "confirmed"
+                          : "unknown"
+                      }`}
+                    >
+                      {upscaleLabel(
+                        position,
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              );
+            },
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -410,46 +454,48 @@ export default function CopytraderDashboard() {
       null,
     );
 
+  const [loading, setLoading] =
+    useState(true);
+
   const [error, setError] =
     useState<string | null>(null);
 
-  const [refreshing, setRefreshing] =
-    useState(false);
+  const load = useCallback(
+    async () => {
+      try {
+        setError(null);
 
-  const load = useCallback(async () => {
-    setRefreshing(true);
-
-    try {
-      const response = await fetch(
-        `/api/dashboard?copytrader=${Date.now()}`,
-        {
-          cache: "no-store",
-        },
-      );
-
-      const body =
-        (await response.json()) as DashboardResponse;
-
-      if (!response.ok) {
-        throw new Error(
-          body.detail ||
-            body.error ||
-            "Ошибка CopyTrader API",
+        const response = await fetch(
+          `/api/dashboard?copytrader=${Date.now()}`,
+          {
+            cache: "no-store",
+          },
         );
-      }
 
-      setData(body);
-      setError(null);
-    } catch (caught) {
-      setError(
-        caught instanceof Error
-          ? caught.message
-          : String(caught),
-      );
-    } finally {
-      setRefreshing(false);
-    }
-  }, []);
+        const body =
+          (await response.json()) as DashboardResponse;
+
+        if (!response.ok) {
+          throw new Error(
+            body.detail ||
+              body.error ||
+              "Ошибка CopyTrader API",
+          );
+        }
+
+        setData(body);
+      } catch (loadError) {
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "Не удалось загрузить данные",
+        );
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     void load();
@@ -458,7 +504,7 @@ export default function CopytraderDashboard() {
       () => {
         void load();
       },
-      REFRESH_MS,
+      30_000,
     );
 
     return () =>
@@ -469,10 +515,9 @@ export default function CopytraderDashboard() {
     data?.copytrader;
 
   const summary =
-    copytrader?.summary || {};
-
-  const quality =
-    copytrader?.data_quality || {};
+    copytrader?.summary ||
+    copytrader?.portfolio ||
+    {};
 
   const openPositions = useMemo(
     () =>
@@ -488,319 +533,787 @@ export default function CopytraderDashboard() {
     [copytrader],
   );
 
-  const cards = [
-    {
-      label: "Старт",
-      value: money(
-        summary.starting_balance_usd,
-      ),
-    },
-    {
-      label: "Balance",
-      value: money(
-        summary.balance_usd,
-      ),
-    },
-    {
-      label: "Equity",
-      value: money(
-        summary.equity_usd,
-      ),
-    },
-    {
-      label: "Realized PnL",
-      value: money(
-        summary.realized_pnl_usd,
-      ),
-      color:
-        valueColor(
-          summary.realized_pnl_usd,
-        ),
-    },
-    {
-      label: "Unrealized PnL",
-      value: money(
-        summary.unrealized_pnl_usd,
-      ),
-      color:
-        valueColor(
-          summary.unrealized_pnl_usd,
-        ),
-    },
-    {
-      label: "Total return",
-      value: percent(
-        summary.total_return_pct,
-      ),
-      color:
-        valueColor(
-          summary.total_return_pct,
-        ),
-    },
-    {
-      label: "Открыто",
-      value: n(
-        summary.open_positions ??
-          openPositions.length,
-        0,
-      ),
-    },
-    {
-      label: "Закрыто",
-      value: n(
-        summary.closed_positions ??
-          closedPositions.length,
-        0,
-      ),
-    },
-    {
-      label: "Win rate",
-      value: percent(
-        summary.win_rate_pct,
-      ),
-    },
-  ];
+  const traderStats = useMemo(
+    () =>
+      copytrader?.trader_stats ||
+      [],
+    [copytrader],
+  );
+
+  const inventory =
+    copytrader?.upscale_inventory;
+
+  const totalPnl =
+    (finite(
+      summary.realized_pnl_usd,
+    ) || 0) +
+    (finite(
+      summary.unrealized_pnl_usd,
+    ) || 0);
 
   return (
-    <main className="dashboard-shell">
-      <header className="dashboard-header">
+    <main
+      className="copy-page"
+      data-product-schema="BROM_COPYTRADER_PRODUCT_V2"
+    >
+      <header className="page-header">
         <div>
-          <p className="eyebrow">
-            OKX · PAPER ONLY
-          </p>
+          <div className="eyebrow">
+            BROM · COPYTRADER
+          </div>
 
           <h1>
-            CopyTrader Dashboard
+            CopyTrader — бумажный портфель
           </h1>
 
-          <p className="dashboard-subtitle">
-            Shadow-проверка публичных сделок.
-            Это не реальные биржевые исполнения
-            и не разрешение переходить на live.
+          <p>
+            Компактный контроль сделок
+            выбранных трейдеров OKX.
+            Распределение показывает долю
+            капитала, а не гарантированный
+            размер убытка.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => void load()}
-          disabled={refreshing}
-          className="refresh-button"
-        >
-          {refreshing
-            ? "Обновление..."
-            : "Обновить"}
-        </button>
+        <div className="header-actions">
+          <span className="mode-badge">
+            PAPER ONLY
+          </span>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLoading(true);
+              void load();
+            }}
+          >
+            Обновить
+          </button>
+        </div>
       </header>
 
       <DashboardNav active="copytrader" />
 
-      {error ? (
-        <section
-          style={{
-            ...panel,
-            marginTop: "18px",
-            borderColor:
-              "rgba(251, 113, 133, 0.45)",
-          }}
-        >
-          Ошибка: {error}
-        </section>
-      ) : null}
+      <section className="notice warning">
+        <strong>
+          Фильтр Upscale не активирован.
+        </strong>
 
-      <section
-        style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(170px, 1fr))",
-          gap: "12px",
-          marginTop: "18px",
-        }}
-      >
-        {cards.map((card) => (
-          <article
-            key={card.label}
-            style={panel}
-          >
-            <div
-              style={{
-                fontSize: "11px",
-                opacity: 0.58,
-              }}
-            >
-              {card.label}
-            </div>
-
-            <div
-              style={{
-                marginTop: "7px",
-                fontSize: "21px",
-                fontWeight: 800,
-                color: card.color,
-              }}
-            >
-              {card.value}
-            </div>
-          </article>
-        ))}
-      </section>
-
-      <section
-        style={{
-          ...panel,
-          marginTop: "18px",
-        }}
-      >
-        <h2
-          style={{
-            margin: "0 0 12px",
-            fontSize: "17px",
-          }}
-        >
-          Качество источника
-        </h2>
-
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns:
-              "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "12px",
-            fontSize: "13px",
-          }}
-        >
-          <div>
-            Статус:{" "}
-            <strong>
-              {quality.collector_status ||
-                copytrader?.status ||
-                "—"}
-            </strong>
-          </div>
-
-          <div>
-            Выбрано трейдеров:{" "}
-            <strong>
-              {n(
-                quality.selected_traders,
-                0,
-              )}
-            </strong>
-          </div>
-
-          <div>
-            Допущено:{" "}
-            <strong>
-              {n(
-                quality.monitor_eligible,
-                0,
-              )}
-            </strong>
-          </div>
-
-          <div>
-            Видимых позиций:{" "}
-            <strong>
-              {n(
-                quality.visible_positions,
-                0,
-              )}
-            </strong>
-          </div>
-
-          <div>
-            Скрытых позиций:{" "}
-            <strong>
-              {n(
-                quality.hidden_positions,
-                0,
-              )}
-            </strong>
-          </div>
-
-          <div>
-            Truncated traders:{" "}
-            <strong>
-              {n(
-                quality.truncated_traders,
-                0,
-              )}
-            </strong>
-          </div>
-
-          <div>
-            Endpoint failures:{" "}
-            <strong>
-              {n(
-                quality.endpoint_failures,
-                0,
-              )}
-            </strong>
-          </div>
-        </div>
+        <span>
+          Свежий полный список инструментов
+          не подтверждён. Текущие монеты
+          остаются в PAPER-статистике и не
+          считаются ни доступными, ни
+          недоступными на платформе.
+        </span>
       </section>
 
       {copytrader?.sample_warning ? (
-        <section
-          style={{
-            ...panel,
-            marginTop: "18px",
-            borderColor:
-              "rgba(251, 191, 36, 0.45)",
-            background:
-              "rgba(120, 53, 15, 0.15)",
-          }}
-        >
+        <section className="notice info">
           <strong>
-            Выборка недостаточна для live.
+            Статистика ещё набирается.
           </strong>
 
-          <p
-            style={{
-              margin: "7px 0 0",
-              lineHeight: 1.5,
-              opacity: 0.74,
-            }}
-          >
-            Закрыто только{" "}
-            {n(
-              summary.closed_positions,
-              0,
-            )}{" "}
-            сделок. Минимальный порог первого
-            исследования:{" "}
-            {n(
-              copytrader.minimum_closed_for_review,
-              0,
-            )}.
-          </p>
+          <span>
+            Закрыто сделок:{" "}
+            {closedPositions.length}. Для
+            решения о реальной торговле
+            требуется минимум{" "}
+            {copytrader
+              .minimum_closed_for_review ||
+              30}.
+          </span>
         </section>
       ) : null}
 
-      <PositionTable
-        title="Открытые PAPER-позиции"
-        positions={openPositions}
-        closed={false}
-      />
+      {error ? (
+        <section className="notice error">
+          <strong>
+            Ошибка загрузки
+          </strong>
 
-      <PositionTable
-        title="Закрытые PAPER-позиции"
-        positions={closedPositions}
-        closed
-      />
+          <span>{error}</span>
+        </section>
+      ) : null}
 
-      <footer
-        style={{
-          marginTop: "22px",
-          fontSize: "11px",
-          opacity: 0.5,
-        }}
-      >
-        Snapshot:{" "}
-        {copytrader?.generated_at ||
-          data?.vps_published_at ||
-          data?.generated_at ||
-          "—"}
+      <section className="summary-grid">
+        <article className="summary-card">
+          <span>Капитал</span>
+          <strong>
+            {money(
+              summary.equity_usd,
+            )}
+          </strong>
+          <small>
+            Старт:{" "}
+            {money(
+              summary
+                .starting_balance_usd,
+            )}
+          </small>
+        </article>
+
+        <article className="summary-card">
+          <span>Общий PnL</span>
+          <strong
+            className={pnlClass(
+              totalPnl,
+            )}
+          >
+            {money(totalPnl)}
+          </strong>
+          <small>
+            Реализовано:{" "}
+            {money(
+              summary
+                .realized_pnl_usd,
+            )}
+          </small>
+        </article>
+
+        <article className="summary-card">
+          <span>Доходность</span>
+          <strong
+            className={pnlClass(
+              summary
+                .total_return_pct,
+            )}
+          >
+            {percent(
+              summary
+                .total_return_pct,
+              true,
+            )}
+          </strong>
+          <small>
+            PAPER-портфель
+          </small>
+        </article>
+
+        <article className="summary-card">
+          <span>Позиции</span>
+          <strong>
+            {openPositions.length} /{" "}
+            {closedPositions.length}
+          </strong>
+          <small>
+            открыто / закрыто
+          </small>
+        </article>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>
+              Статистика трейдеров
+            </h2>
+
+            <p>
+              Win rate — общий показатель
+              источника. Доходность за четыре
+              недели рассчитана по
+              подтверждённому ряду OKX.
+            </p>
+          </div>
+
+          <span className="count-badge">
+            {traderStats.length} трейдеров
+          </span>
+        </div>
+
+        <div className="table-shell">
+          <table className="compact-table trader-table">
+            <thead>
+              <tr>
+                <th>Трейдер</th>
+                <th>Биржа</th>
+                <th>Win rate</th>
+                <th>
+                  Доходность за 4 недели
+                </th>
+                <th>6 месяцев</th>
+                <th>1 год</th>
+                <th>История</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {traderStats.map(
+                (
+                  trader,
+                  index,
+                ) => (
+                  <tr
+                    key={
+                      trader.trader_id ||
+                      trader.label ||
+                      index
+                    }
+                  >
+                    <td>
+                      <strong>
+                        {trader.label ||
+                          "Трейдер"}
+                      </strong>
+                    </td>
+
+                    <td>
+                      {trader.exchange ||
+                        "OKX"}
+                    </td>
+
+                    <td>
+                      {percent(
+                        trader.win_rate_pct,
+                      )}
+                    </td>
+
+                    <td>
+                      <strong
+                        className={pnlClass(
+                          trader
+                            .four_week_return_pct,
+                        )}
+                      >
+                        {trader
+                          .four_week_proven
+                          ? percent(
+                              trader
+                                .four_week_return_pct,
+                              true,
+                            )
+                          : "нет данных"}
+                      </strong>
+                    </td>
+
+                    <td>
+                      {trader
+                        .six_month_proven
+                        ? percent(
+                            trader
+                              .six_month_return_pct,
+                            true,
+                          )
+                        : "нет данных"}
+                    </td>
+
+                    <td>
+                      {trader
+                        .one_year_proven
+                        ? percent(
+                            trader
+                              .one_year_return_pct,
+                            true,
+                          )
+                        : "нет данных"}
+                    </td>
+
+                    <td>
+                      {trader.weekly_points ||
+                        0}{" "}
+                      недель
+                    </td>
+                  </tr>
+                ),
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>
+              Открытые PAPER-позиции
+            </h2>
+
+            <p>
+              Биржа источника, трейдер,
+              направление и фактическая доля
+              капитала на позицию.
+            </p>
+          </div>
+
+          <span className="count-badge">
+            {openPositions.length}
+          </span>
+        </div>
+
+        <PositionsTable
+          rows={openPositions}
+          closed={false}
+        />
+      </section>
+
+      <section className="panel">
+        <div className="panel-heading">
+          <div>
+            <h2>
+              Закрытые PAPER-позиции
+            </h2>
+
+            <p>
+              Реализованный результат без
+              изменения исторической
+              статистики.
+            </p>
+          </div>
+
+          <span className="count-badge">
+            {closedPositions.length}
+          </span>
+        </div>
+
+        <PositionsTable
+          rows={closedPositions}
+          closed
+        />
+      </section>
+
+      <footer className="product-footer">
+        <span>
+          Источник:{" "}
+          {copytrader?.exchange ||
+            "OKX"}
+        </span>
+
+        <span>
+          Upscale inventory:{" "}
+          {inventory?.proven
+            ? "подтверждён"
+            : "не подтверждён"}
+        </span>
+
+        <span>
+          Обновлено:{" "}
+          {copytrader?.generated_at
+            ? new Date(
+                copytrader.generated_at,
+              ).toLocaleString(
+                "ru-RU",
+              )
+            : loading
+              ? "загрузка"
+              : "—"}
+        </span>
       </footer>
+
+      <style jsx>{`
+        .copy-page {
+          width: min(
+            1440px,
+            calc(100% - 32px)
+          );
+          margin: 0 auto;
+          padding: 24px 0 48px;
+        }
+
+        .page-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 24px;
+          margin-bottom: 18px;
+        }
+
+        .eyebrow {
+          margin-bottom: 7px;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.14em;
+          opacity: 0.62;
+        }
+
+        h1 {
+          margin: 0;
+          font-size: clamp(
+            25px,
+            4vw,
+            38px
+          );
+          line-height: 1.08;
+        }
+
+        .page-header p {
+          max-width: 720px;
+          margin: 10px 0 0;
+          font-size: 14px;
+          line-height: 1.55;
+          opacity: 0.68;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+
+        button {
+          min-height: 38px;
+          padding: 0 15px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.16
+            );
+          border-radius: 10px;
+          background: rgba(
+            255,
+            255,
+            255,
+            0.06
+          );
+          color: inherit;
+          cursor: pointer;
+        }
+
+        .mode-badge,
+        .count-badge {
+          display: inline-flex;
+          align-items: center;
+          min-height: 28px;
+          padding: 0 10px;
+          border-radius: 999px;
+          background: rgba(
+            255,
+            255,
+            255,
+            0.07
+          );
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.05em;
+        }
+
+        .notice {
+          display: grid;
+          grid-template-columns:
+            minmax(180px, auto)
+            1fr;
+          gap: 12px;
+          margin-top: 14px;
+          padding: 12px 14px;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.1
+            );
+          border-radius: 12px;
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .notice.warning {
+          background: rgba(
+            245,
+            158,
+            11,
+            0.08
+          );
+        }
+
+        .notice.info {
+          background: rgba(
+            59,
+            130,
+            246,
+            0.07
+          );
+        }
+
+        .notice.error {
+          background: rgba(
+            239,
+            68,
+            68,
+            0.08
+          );
+        }
+
+        .summary-grid {
+          display: grid;
+          grid-template-columns:
+            repeat(
+              4,
+              minmax(0, 1fr)
+            );
+          gap: 12px;
+          margin-top: 16px;
+        }
+
+        .summary-card,
+        .panel {
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.1
+            );
+          background: rgba(
+            255,
+            255,
+            255,
+            0.035
+          );
+          box-shadow:
+            0 18px 50px
+            rgba(
+              0,
+              0,
+              0,
+              0.12
+            );
+        }
+
+        .summary-card {
+          display: grid;
+          gap: 6px;
+          min-height: 112px;
+          padding: 15px;
+          border-radius: 14px;
+        }
+
+        .summary-card span {
+          font-size: 12px;
+          opacity: 0.62;
+        }
+
+        .summary-card strong {
+          align-self: center;
+          font-size: 23px;
+        }
+
+        .summary-card small {
+          font-size: 11px;
+          opacity: 0.52;
+        }
+
+        .panel {
+          margin-top: 16px;
+          padding: 16px;
+          border-radius: 16px;
+        }
+
+        .panel-heading {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 18px;
+          margin-bottom: 13px;
+        }
+
+        .panel-heading h2 {
+          margin: 0;
+          font-size: 17px;
+        }
+
+        .panel-heading p {
+          max-width: 720px;
+          margin: 5px 0 0;
+          font-size: 12px;
+          line-height: 1.45;
+          opacity: 0.56;
+        }
+
+        .table-shell {
+          width: 100%;
+          overflow-x: auto;
+          border: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.08
+            );
+          border-radius: 12px;
+        }
+
+        .compact-table {
+          width: 100%;
+          min-width: 1040px;
+          border-collapse: collapse;
+          table-layout: auto;
+          font-size: 12px;
+        }
+
+        .trader-table {
+          min-width: 850px;
+        }
+
+        th,
+        td {
+          padding: 10px 11px;
+          border-bottom: 1px solid
+            rgba(
+              255,
+              255,
+              255,
+              0.07
+            );
+          text-align: left;
+          white-space: nowrap;
+          vertical-align: middle;
+        }
+
+        th {
+          background: rgba(
+            255,
+            255,
+            255,
+            0.035
+          );
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.045em;
+          text-transform: uppercase;
+          opacity: 0.55;
+        }
+
+        tbody tr:last-child td {
+          border-bottom: 0;
+        }
+
+        tbody tr:hover {
+          background: rgba(
+            255,
+            255,
+            255,
+            0.025
+          );
+        }
+
+        .subline {
+          display: block;
+          margin-top: 3px;
+          font-size: 10px;
+          opacity: 0.48;
+        }
+
+        .side-badge,
+        .availability {
+          display: inline-flex;
+          align-items: center;
+          min-height: 24px;
+          padding: 0 8px;
+          border-radius: 999px;
+          font-size: 10px;
+          font-weight: 800;
+        }
+
+        .side-badge.long {
+          background: rgba(
+            16,
+            185,
+            129,
+            0.12
+          );
+        }
+
+        .side-badge.short {
+          background: rgba(
+            239,
+            68,
+            68,
+            0.12
+          );
+        }
+
+        .availability.confirmed {
+          background: rgba(
+            16,
+            185,
+            129,
+            0.12
+          );
+        }
+
+        .availability.unknown {
+          background: rgba(
+            245,
+            158,
+            11,
+            0.1
+          );
+        }
+
+        .positive {
+          color: #34d399;
+        }
+
+        .negative {
+          color: #fb7185;
+        }
+
+        .neutral {
+          color: inherit;
+        }
+
+        .empty-state {
+          padding: 25px;
+          text-align: center;
+          font-size: 13px;
+          opacity: 0.55;
+        }
+
+        .product-footer {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: space-between;
+          gap: 12px;
+          margin-top: 16px;
+          padding: 0 3px;
+          font-size: 10px;
+          opacity: 0.45;
+        }
+
+        @media (
+          max-width: 980px
+        ) {
+          .summary-grid {
+            grid-template-columns:
+              repeat(
+                2,
+                minmax(0, 1fr)
+              );
+          }
+
+          .page-header {
+            flex-direction: column;
+          }
+        }
+
+        @media (
+          max-width: 580px
+        ) {
+          .copy-page {
+            width: min(
+              100% - 20px,
+              1440px
+            );
+            padding-top: 15px;
+          }
+
+          .summary-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .notice {
+            grid-template-columns: 1fr;
+          }
+
+          .panel {
+            padding: 12px;
+          }
+        }
+      `}</style>
     </main>
   );
 }
