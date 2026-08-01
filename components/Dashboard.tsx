@@ -1,6 +1,7 @@
 "use client";
 
 import DashboardNav from "@/components/DashboardNav";
+import IntradayModeNav from "@/components/IntradayModeNav";
 
 import {
   useCallback,
@@ -365,7 +366,68 @@ function DealCard({
   );
 }
 
-export default function Dashboard() {
+export type IntradayView =
+  | "short"
+  | "long"
+  | "combined";
+
+type DashboardProps = {
+  view?: IntradayView;
+  title?: string;
+  strategyLabel?: string;
+  modelLabel?: string;
+};
+
+function selectIntradayView(
+  body: DashboardData,
+  view: IntradayView,
+): DashboardData {
+  if (view === "short") {
+    return {
+      ...body,
+      selected_intraday_mode: "SHORT",
+    };
+  }
+
+  const intraday = body.intraday as
+    | Record<string, DashboardData>
+    | undefined;
+
+  const branch = intraday?.[view];
+
+  if (!branch) {
+    return {
+      ...body,
+      mode:
+        view === "long"
+          ? "ALPHA_NATIVE_LONG_3R_PAPER_TRACKER"
+          : "ALPHA_INTRADAY_COMBINED_RESEARCH",
+      summary: {},
+      trades: [],
+      bridge: {},
+      selected_intraday_mode:
+        view.toUpperCase(),
+    };
+  }
+
+  return {
+    ...body,
+    mode: branch.mode || body.mode,
+    summary: branch.summary || {},
+    trades: branch.trades || [],
+    bridge: branch.bridge || {},
+    safety: branch.safety || body.safety,
+    selected_intraday_mode:
+      view.toUpperCase(),
+  };
+}
+
+export default function Dashboard({
+  view = "short",
+  title = "Intraday SHORT Dashboard",
+  strategyLabel = "Paper SHORT strategy",
+  modelLabel = "SHORT model",
+}: DashboardProps) {
   const [data, setData] =
     useState<DashboardData | null>(null);
 
@@ -384,7 +446,11 @@ export default function Dashboard() {
         { cache: "no-store" },
       );
 
-      const body = await response.json();
+      const body =
+        (await response.json()) as DashboardData & {
+          error?: string;
+          detail?: string;
+        };
 
       if (!response.ok) {
         throw new Error(
@@ -394,7 +460,7 @@ export default function Dashboard() {
         );
       }
 
-      setData(body);
+      setData(selectIntradayView(body, view));
       setError(null);
     } catch (caught) {
       setError(
@@ -405,7 +471,7 @@ export default function Dashboard() {
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [view]);
 
   useEffect(() => {
     load();
@@ -471,10 +537,10 @@ export default function Dashboard() {
             BROM / ALPHA
           </div>
 
-          <h1>Intraday Dashboard</h1>
+          <h1>{title}</h1>
 
           <p>
-            Paper-стратегия SHORT · депозит
+            {strategyLabel} · депозит
             $10 000 · риск 0,25% · цель 3R.
           </p>
         </div>
@@ -504,6 +570,7 @@ export default function Dashboard() {
       </header>
 
       <DashboardNav active="intraday" />
+      <IntradayModeNav active={view} />
 
       <section className="metrics-grid">
         <div className="card metric-card">
@@ -538,7 +605,7 @@ export default function Dashboard() {
             {TARGET_RR}R
           </div>
           <div className="metric-hint">
-            SHORT-only модель
+            {modelLabel}
           </div>
         </div>
 
