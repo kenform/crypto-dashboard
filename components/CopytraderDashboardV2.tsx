@@ -545,11 +545,10 @@ export default function CopytraderDashboardV2() {
             BROM / COPYTRADER
           </div>
 
-          <h1>CopyTrader</h1>
+          <h1>CopyTrader Research</h1>
 
           <p>
-            Виртуальная проверка выбранных трейдеров,
-            открытых позиций и итоговой эффективности.
+            PAPER-исследование трейдеров, их позиций и поведения при открытии и закрытии сделок.
           </p>
         </div>
 
@@ -563,8 +562,8 @@ export default function CopytraderDashboardV2() {
           >
             <span />
             {inventoryProven
-              ? "ДАННЫЕ ПОДТВЕРЖДЕНЫ"
-              : "НОВЫЕ ВХОДЫ ЗАБЛОКИРОВАНЫ"}
+              ? "PAPER · ИНСТРУМЕНТЫ ПРОВЕРЕНЫ"
+              : "PAPER · НОВЫЕ ВХОДЫ НА ПАУЗЕ"}
           </div>
 
           <button
@@ -589,6 +588,35 @@ export default function CopytraderDashboardV2() {
           {error}
         </div>
       ) : null}
+
+      <section className="copy-research-notice card">
+        <div>
+          <strong>Только PAPER</strong>
+          <span>
+            Реальное копирование и отправка заявок
+            на Upscale выключены.
+          </span>
+        </div>
+
+        <div>
+          <strong>Почему входы на паузе</strong>
+          <span>
+            Система пока не доказала, что нужные
+            инструменты доступны для торговли
+            на Upscale.
+          </span>
+        </div>
+
+        <div>
+          <strong>Как сейчас закрывается позиция</strong>
+          <span>
+            PAPER-позиция закрывается после
+            подтверждённого закрытия ведущим
+            трейдером. Собственный аварийный SL
+            ещё не внедрён.
+          </span>
+        </div>
+      </section>
 
       <section className="metrics-grid">
         <div className="card metric-card">
@@ -745,8 +773,8 @@ export default function CopytraderDashboardV2() {
         </div>
 
         <div>
-          <span>Новых реальных входов</span>
-          <strong>Нет</strong>
+          <span>Независимый защитный SL</span>
+          <strong>Не настроен</strong>
         </div>
       </section>
 
@@ -1303,8 +1331,7 @@ export default function CopytraderDashboardV2() {
       </details>
 
       <footer>
-        CopyTrader · виртуальный портфель ·
-        реальные заявки не отправляются
+        CopyTrader Research · PAPER only · реальное копирование выключено
       </footer>
     </main>
   );

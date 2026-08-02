@@ -228,6 +228,21 @@ function formatTime(value: unknown): string {
   });
 }
 
+function formatDateOnly(
+  value: number | null,
+): string {
+  if (value === null) return "—";
+
+  return new Date(value).toLocaleDateString(
+    "ru-RU",
+    {
+      day: "2-digit",
+      month: "2-digit",
+      year: "2-digit",
+    },
+  );
+}
+
 function selectBranch(
   body: DashboardApi,
   view: IntradayView,
@@ -545,16 +560,43 @@ export default function DashboardV2({
     ),
   );
 
+  const samplePeriod = useMemo(() => {
+    const timestamps = trades
+      .map((trade) => {
+        const value = new Date(
+          trade.created_at || "",
+        ).getTime();
+
+        return Number.isFinite(value)
+          ? value
+          : null;
+      })
+      .filter(
+        (value): value is number =>
+          value !== null,
+      )
+      .sort((left, right) => left - right);
+
+    return {
+      start:
+        timestamps.length
+          ? timestamps[0]
+          : null,
+
+      end:
+        timestamps.length
+          ? timestamps[
+              timestamps.length - 1
+            ]
+          : null,
+    };
+  }, [trades]);
+
   const generated = data?.generated_at
     ? new Date(
         data.generated_at,
       ).toLocaleString("ru-RU")
     : "—";
-
-  const marketReady = (
-    summary.market_data_ready === true
-    || view === "combined"
-  );
 
   return (
     <main className="shell">
@@ -567,8 +609,7 @@ export default function DashboardV2({
           <h1>{title}</h1>
 
           <p>
-            Виртуальная статистика новых сигналов,
-            открытых позиций и завершённых сделок.
+            Накопленная статистика текущего трекера: сигналы, открытые позиции и закрытые сделки.
           </p>
         </div>
 
@@ -622,7 +663,7 @@ export default function DashboardV2({
           </div>
 
           <div className="metric-hint">
-            Всего сигналов в режиме
+            Накопленные записи трекера
           </div>
         </div>
 
@@ -755,11 +796,15 @@ export default function DashboardV2({
         </div>
 
         <div>
-          <span>Рыночные данные</span>
+          <span>Период выборки</span>
           <strong>
-            {marketReady
-              ? "Доступны"
-              : "Проверяются"}
+            {formatDateOnly(
+              samplePeriod.start,
+            )}
+            {" — "}
+            {formatDateOnly(
+              samplePeriod.end,
+            )}
           </strong>
         </div>
 
@@ -779,8 +824,7 @@ export default function DashboardV2({
             <h2>Позиции и история</h2>
 
             <p className="section-description">
-              Основной список сделок. Entry, SL, TP
-              и Score доступны внутри карточки.
+              Показаны все накопленные записи текущего трекера. Entry, SL, TP и Score доступны внутри карточки.
             </p>
           </div>
 

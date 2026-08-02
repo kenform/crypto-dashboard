@@ -320,9 +320,6 @@ export default function MttShadowDashboard() {
 
   const bandRows = useMemo(
     () => [
-      "LT_50",
-      "50_59",
-      "60_69",
       "70_79",
       "80_84",
     ].map((key) => ({
@@ -379,10 +376,10 @@ export default function MttShadowDashboard() {
             BROM / MTT SHADOW
           </div>
 
-          <h1>MTT Shadow</h1>
+          <h1>MTT &lt;85</h1>
 
           <p>
-            Проверка новых MTT-сигналов со score ниже 85 без риска реальными деньгами.
+            Новые MTT-сигналы со Score 70–84, которые не проходят порог реального исполнения 85.
           </p>
         </div>
 
@@ -438,7 +435,7 @@ export default function MttShadowDashboard() {
           </div>
 
           <div className="metric-hint">
-            Score ниже 85
+            Только Score 70–84
           </div>
         </div>
 
@@ -602,7 +599,7 @@ export default function MttShadowDashboard() {
               СРАВНЕНИЕ SCORE
             </div>
 
-            <h2>Какие оценки работают лучше</h2>
+            <h2>Сравнение Score 70–84</h2>
 
             <p className="section-description">
               Результаты считаются отдельно для
@@ -786,7 +783,7 @@ export default function MttShadowDashboard() {
       </section>
 
       <footer>
-        MTT Shadow · виртуальная статистика · реальные деньги не используются
+        MTT &lt;85 · Score 70–84 · виртуальная статистика
       </footer>
     </main>
   );

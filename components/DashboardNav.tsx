@@ -30,12 +30,12 @@ export default function DashboardNav({
     {
       id: "mtt-shadow",
       href: "/mtt-shadow",
-      label: "MTT Shadow",
+      label: "MTT <85",
     },
     {
       id: "copytrader",
       href: "/copytrader",
-      label: "CopyTrader",
+      label: "CopyTrader Lab",
     },
     {
       id: "journal",

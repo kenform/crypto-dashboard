@@ -4,6 +4,7 @@ import "./globals.css";
 import "./ui-cleanup-v1.css";
 import "./ui-page-v2.css";
 import "./ui-page-v2b.css";
+import "./ui-semantic-v2d.css";
 
 export const metadata: Metadata = {
   title: "BROM Alpha Dashboard",
