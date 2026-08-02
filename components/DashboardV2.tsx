@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import DashboardNav from "@/components/DashboardNav";
+import IntradayDeliveryCard from "@/components/IntradayDeliveryCard";
 
 const REFRESH_MS = 15_000;
 
@@ -747,6 +748,8 @@ export default function DashboardV2({
           </div>
         </div>
       </section>
+
+      <IntradayDeliveryCard />
 
       <section className="compact-results">
         <div>

@@ -1,5 +1,5 @@
-import MttDashboard from "@/components/MttDashboard";
+import MttDashboardV2 from "@/components/MttDashboardV2";
 
 export default function MttPage() {
-  return <MttDashboard />;
+  return <MttDashboardV2 />;
 }
