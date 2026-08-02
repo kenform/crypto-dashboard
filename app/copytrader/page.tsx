@@ -1,5 +1,5 @@
-import CopytraderDashboard from "@/components/CopytraderDashboard";
+import CopytraderDashboardV2 from "@/components/CopytraderDashboardV2";
 
 export default function CopytraderPage() {
-  return <CopytraderDashboard />;
+  return <CopytraderDashboardV2 />;
 }

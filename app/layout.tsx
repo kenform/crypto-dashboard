@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Metadata } from "next";
 import "./globals.css";
 import "./ui-cleanup-v1.css";
+import "./ui-page-v2.css";
 
 export const metadata: Metadata = {
   title: "BROM Alpha Dashboard",
