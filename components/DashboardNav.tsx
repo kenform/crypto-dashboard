@@ -3,6 +3,7 @@ type Props = {
     | "intraday"
     | "scalp"
     | "mtt"
+    | "mtt-shadow"
     | "journal"
     | "copytrader";
 };
@@ -24,7 +25,12 @@ export default function DashboardNav({
     {
       id: "mtt",
       href: "/mtt",
-      label: "Upscale / MTT",
+      label: "MTT Real",
+    },
+    {
+      id: "mtt-shadow",
+      href: "/mtt-shadow",
+      label: "MTT Shadow",
     },
     {
       id: "copytrader",
