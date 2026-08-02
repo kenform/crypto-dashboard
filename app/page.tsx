@@ -1,12 +1,10 @@
-import Dashboard from "@/components/Dashboard";
+import DashboardV2 from "@/components/DashboardV2";
 
 export default function Page() {
   return (
-    <Dashboard
+    <DashboardV2
       view="short"
-      title="Intraday SHORT Dashboard"
-      strategyLabel="Paper-стратегия SHORT"
-      modelLabel="SHORT-only модель"
+      title="Интрадей SHORT"
     />
   );
 }

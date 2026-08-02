@@ -1,5 +1,5 @@
-import ScalpDashboard from "@/components/ScalpDashboard";
+import ScalpDashboardV2 from "@/components/ScalpDashboardV2";
 
 export default function ScalpPage() {
-  return <ScalpDashboard />;
+  return <ScalpDashboardV2 />;
 }

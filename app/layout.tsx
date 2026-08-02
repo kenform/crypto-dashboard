@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./ui-cleanup-v1.css";
 import "./ui-page-v2.css";
+import "./ui-page-v2b.css";
 
 export const metadata: Metadata = {
   title: "BROM Alpha Dashboard",

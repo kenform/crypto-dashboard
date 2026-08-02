@@ -1,12 +1,10 @@
-import Dashboard from "@/components/Dashboard";
+import DashboardV2 from "@/components/DashboardV2";
 
 export default function CombinedPage() {
   return (
-    <Dashboard
+    <DashboardV2
       view="combined"
-      title="Intraday Combined Dashboard"
-      strategyLabel="Paper-исследование LONG + SHORT"
-      modelLabel="Combined research portfolio"
+      title="Интрадей — общий портфель"
     />
   );
 }

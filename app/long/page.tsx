@@ -1,12 +1,10 @@
-import Dashboard from "@/components/Dashboard";
+import DashboardV2 from "@/components/DashboardV2";
 
 export default function LongPage() {
   return (
-    <Dashboard
+    <DashboardV2
       view="long"
-      title="Intraday LONG Dashboard"
-      strategyLabel="Paper-стратегия LONG"
-      modelLabel="LONG forward-only модель"
+      title="Интрадей LONG"
     />
   );
 }
