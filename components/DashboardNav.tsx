@@ -15,17 +15,17 @@ export default function DashboardNav({
     {
       id: "intraday",
       href: "/",
-      label: "Intraday",
+      label: "Интрадей",
     },
     {
       id: "scalp",
       href: "/scalp",
-      label: "Scalp",
+      label: "Скальпинг",
     },
     {
       id: "mtt",
       href: "/mtt",
-      label: "MTT Real",
+      label: "MTT Реал",
     },
     {
       id: "mtt-shadow",

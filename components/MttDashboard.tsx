@@ -514,11 +514,10 @@ export default function MttDashboard() {
             BROM / UPSCALE / MTT
           </div>
 
-          <h1>Real Account Dashboard</h1>
+          <h1>MTT — реальные сделки</h1>
 
           <p>
-            Актуальные данные реального счёта Upscale,
-            автоторговля и статистика MTT.
+            Баланс, активные позиции и результаты реальной автоторговли.
           </p>
         </div>
 
@@ -577,7 +576,7 @@ export default function MttDashboard() {
             {n(account.current_balance_usd, 2)} USD
           </div>
           <div className="metric-hint">
-            База: 10 000 USD
+            Стартовый ориентир счёта
           </div>
         </div>
 
@@ -655,7 +654,7 @@ export default function MttDashboard() {
             {n(data?.active_position_count, 0)}
           </div>
           <div className="metric-hint">
-            Реальный account truth
+            Данные торгового счёта
           </div>
         </div>
       </section>
@@ -748,8 +747,7 @@ export default function MttDashboard() {
       </section>
 
       <footer>
-        Upscale / MTT · real account ·
-        read-only statistics
+        MTT · реальный счёт · статистика без ручного управления
       </footer>
     </main>
   );

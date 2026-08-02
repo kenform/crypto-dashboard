@@ -307,7 +307,7 @@ export default function ScalpDashboard() {
             BROM / ALPHA / SCALP
           </div>
 
-          <h1>Панель Scalp</h1>
+          <h1>Скальпинг</h1>
 
           <p>
             Каноническая shadow-only статистика
@@ -485,7 +485,7 @@ export default function ScalpDashboard() {
             </div>
 
             <h2>
-              Параллельный forward-эксперимент
+              Текущий PAPER-эксперимент
             </h2>
 
             <p className="section-description">
@@ -640,7 +640,7 @@ export default function ScalpDashboard() {
               ALPHA SCALP 141 V1
             </div>
 
-            <h2>Последние сделки и кандидаты</h2>
+            <h2>Последние идеи и сделки</h2>
 
             <p className="section-description">
               V1 оставлен без изменений.

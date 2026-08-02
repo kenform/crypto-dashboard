@@ -572,7 +572,7 @@ export default function CopytraderDashboard() {
           </div>
 
           <h1>
-            CopyTrader — бумажный портфель
+            CopyTrader
           </h1>
 
           <p>
@@ -835,7 +835,7 @@ export default function CopytraderDashboard() {
         <div className="panel-heading">
           <div>
             <h2>
-              Открытые PAPER-позиции
+              Открытые виртуальные позиции
             </h2>
 
             <p>
@@ -860,7 +860,7 @@ export default function CopytraderDashboard() {
         <div className="panel-heading">
           <div>
             <h2>
-              Закрытые PAPER-позиции
+              Закрытые виртуальные позиции
             </h2>
 
             <p>

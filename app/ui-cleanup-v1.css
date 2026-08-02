@@ -1,0 +1,487 @@
+/*
+ * BROM Global Dashboard UI/UX Cleanup V1
+ * Visual layer only. No trading or API logic.
+ */
+
+:root {
+  --brom-ui-radius-sm: 10px;
+  --brom-ui-radius-md: 16px;
+  --brom-ui-radius-lg: 22px;
+  --brom-ui-border:
+    color-mix(in srgb, currentColor 14%, transparent);
+  --brom-ui-border-soft:
+    color-mix(in srgb, currentColor 8%, transparent);
+  --brom-ui-surface:
+    color-mix(in srgb, currentColor 3.5%, transparent);
+  --brom-ui-surface-hover:
+    color-mix(in srgb, currentColor 6%, transparent);
+  --brom-ui-shadow:
+    0 18px 55px rgba(0, 0, 0, 0.16);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+a,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+.dashboard-main-nav a,
+.section-link,
+.journal-detail-link {
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background-color 150ms ease,
+    opacity 150ms ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 3px solid
+    color-mix(in srgb, currentColor 35%, transparent);
+  outline-offset: 3px;
+}
+
+.shell {
+  width: min(100%, 1480px);
+  margin-inline: auto;
+  padding:
+    clamp(16px, 2.4vw, 34px)
+    clamp(14px, 2.6vw, 38px)
+    54px;
+}
+
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: clamp(20px, 4vw, 56px);
+  padding: clamp(19px, 2.5vw, 30px);
+  margin-bottom: 16px;
+  border: 1px solid var(--brom-ui-border);
+  border-radius: var(--brom-ui-radius-lg);
+  background: var(--brom-ui-surface);
+  box-shadow: var(--brom-ui-shadow);
+}
+
+.topbar-copy {
+  min-width: 0;
+}
+
+.topbar-copy h1 {
+  margin-top: 7px;
+  margin-bottom: 9px;
+  font-size: clamp(27px, 3vw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+}
+
+.topbar-copy p {
+  max-width: 760px;
+  margin: 0;
+  font-size: clamp(14px, 1.4vw, 16px);
+  line-height: 1.62;
+  opacity: 0.73;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: flex-end;
+  flex-direction: column;
+  gap: 10px;
+  min-width: min(100%, 250px);
+}
+
+.topbar-right button {
+  min-height: 42px;
+  padding-inline: 17px;
+  border-radius: 12px;
+}
+
+.updated {
+  max-width: 260px;
+  text-align: right;
+  line-height: 1.45;
+  opacity: 0.62;
+}
+
+.dashboard-main-nav {
+  position: sticky;
+  z-index: 40;
+  top: 10px;
+  display: flex;
+  gap: 5px;
+  width: 100%;
+  margin: 0 0 20px;
+  padding: 6px;
+  overflow-x: auto;
+  border: 1px solid var(--brom-ui-border);
+  border-radius: 16px;
+  background:
+    color-mix(
+      in srgb,
+      var(--brom-ui-surface) 88%,
+      transparent
+    );
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(18px);
+  scrollbar-width: none;
+}
+
+.dashboard-main-nav::-webkit-scrollbar {
+  display: none;
+}
+
+.dashboard-main-nav a,
+.dashboard-main-nav span {
+  flex: 0 0 auto;
+  min-height: 39px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.dashboard-main-nav a:hover {
+  transform: translateY(-1px);
+}
+
+.dashboard-switch-active {
+  box-shadow:
+    inset 0 0 0 1px
+    color-mix(in srgb, currentColor 15%, transparent);
+}
+
+.card {
+  border-radius: var(--brom-ui-radius-md);
+  border-color: var(--brom-ui-border);
+  box-shadow:
+    0 12px 38px rgba(0, 0, 0, 0.11);
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+  gap: 13px;
+  margin-bottom: 16px;
+}
+
+.metric-card {
+  min-height: 138px;
+  padding: clamp(16px, 2vw, 22px);
+  border: 1px solid var(--brom-ui-border);
+  background: var(--brom-ui-surface);
+}
+
+.metric-label {
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.045em;
+  opacity: 0.66;
+}
+
+.metric-value {
+  font-size: clamp(24px, 2.5vw, 34px);
+  line-height: 1.1;
+  letter-spacing: -0.035em;
+}
+
+.metric-hint {
+  margin-top: auto;
+  padding-top: 11px;
+  line-height: 1.45;
+  opacity: 0.62;
+}
+
+.compact-results {
+  display: grid;
+  grid-template-columns:
+    repeat(6, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin-bottom: 18px;
+  border: 1px solid var(--brom-ui-border);
+  border-radius: var(--brom-ui-radius-md);
+  background: var(--brom-ui-border-soft);
+}
+
+.compact-results > div {
+  min-width: 0;
+  padding: 15px 14px;
+  background: var(--brom-ui-surface);
+}
+
+.compact-results span,
+.compact-results strong {
+  overflow-wrap: anywhere;
+}
+
+.compact-results span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.62;
+}
+
+.compact-results strong {
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.section-card {
+  margin-top: 17px;
+  padding: clamp(18px, 2.6vw, 28px);
+}
+
+.section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 20px;
+}
+
+.section-head h2 {
+  margin-top: 6px;
+  margin-bottom: 7px;
+  font-size: clamp(21px, 2vw, 29px);
+  letter-spacing: -0.025em;
+}
+
+.section-description {
+  max-width: 760px;
+  line-height: 1.58;
+  opacity: 0.68;
+}
+
+.section-link {
+  flex: 0 0 auto;
+  min-height: 38px;
+  padding: 10px 13px;
+  border: 1px solid var(--brom-ui-border);
+  border-radius: 11px;
+  text-decoration: none;
+}
+
+.section-link:hover {
+  transform: translateY(-1px);
+  background: var(--brom-ui-surface-hover);
+}
+
+.table-wrap,
+.table-shell,
+.shadow-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--brom-ui-border);
+  border-radius: 15px;
+  scrollbar-width: thin;
+}
+
+table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+thead th {
+  position: sticky;
+  z-index: 2;
+  top: 0;
+  padding-top: 13px;
+  padding-bottom: 13px;
+  background:
+    color-mix(
+      in srgb,
+      var(--brom-ui-surface) 96%,
+      transparent
+    );
+  backdrop-filter: blur(14px);
+}
+
+tbody td {
+  border-top:
+    1px solid var(--brom-ui-border-soft);
+}
+
+tbody tr {
+  transition: background-color 120ms ease;
+}
+
+tbody tr:hover {
+  background: var(--brom-ui-surface-hover);
+}
+
+.deal-list {
+  display: grid;
+  gap: 11px;
+}
+
+.deal-card {
+  overflow: clip;
+  border-radius: 15px;
+  border-color: var(--brom-ui-border);
+}
+
+.deal-card[open] {
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.12);
+}
+
+.deal-summary {
+  min-height: 66px;
+  padding: 15px 17px;
+}
+
+.deal-details {
+  padding:
+    0 17px 18px;
+}
+
+.empty-inline,
+.empty-state {
+  padding: clamp(20px, 3vw, 34px);
+  border: 1px dashed var(--brom-ui-border);
+  border-radius: 15px;
+  line-height: 1.6;
+}
+
+.shadow-intro {
+  border-radius: 15px;
+}
+
+.shadow-band-grid {
+  gap: 11px;
+}
+
+.shadow-band-card {
+  min-height: 126px;
+  border-color: var(--brom-ui-border);
+  background: var(--brom-ui-surface);
+}
+
+.autotrade-health,
+.shadow-mode-pill,
+.shadow-status,
+.pill {
+  border-color: var(--brom-ui-border);
+}
+
+.tech-details {
+  margin-top: 14px;
+  opacity: 0.78;
+}
+
+.tech-details[open] {
+  opacity: 1;
+}
+
+footer {
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid var(--brom-ui-border-soft);
+  text-align: center;
+  line-height: 1.5;
+  opacity: 0.52;
+}
+
+@media (max-width: 1180px) {
+  .compact-results {
+    grid-template-columns:
+      repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 920px) {
+  .topbar {
+    flex-direction: column;
+  }
+
+  .topbar-right {
+    align-items: flex-start;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .updated {
+    max-width: none;
+    text-align: left;
+  }
+
+  .metrics-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .section-head {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 660px) {
+  .shell {
+    padding-inline: 12px;
+  }
+
+  .topbar {
+    padding: 18px;
+    border-radius: 17px;
+  }
+
+  .dashboard-main-nav {
+    margin-inline: -2px;
+    width: calc(100% + 4px);
+  }
+
+  .dashboard-main-nav a,
+  .dashboard-main-nav span {
+    padding-inline: 12px;
+  }
+
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-card {
+    min-height: 122px;
+  }
+
+  .compact-results {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .section-card {
+    padding: 17px;
+  }
+
+  .shadow-band-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .compact-results,
+  .shadow-band-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar-copy h1 {
+    font-size: 28px;
+  }
+}

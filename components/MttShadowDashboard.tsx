@@ -379,19 +379,17 @@ export default function MttShadowDashboard() {
             BROM / MTT SHADOW
           </div>
 
-          <h1>MTT Shadow Lab</h1>
+          <h1>MTT Shadow</h1>
 
           <p>
-            Виртуальная проверка новых MTT-сигналов
-            со score ниже 85 без риска реальными
-            деньгами.
+            Проверка новых MTT-сигналов со score ниже 85 без риска реальными деньгами.
           </p>
         </div>
 
         <div className="topbar-right">
           <div className="shadow-mode-pill">
             <span />
-            PAPER / SHADOW
+            ВИРТУАЛЬНЫЙ РЕЖИМ
           </div>
 
           <button
@@ -788,8 +786,7 @@ export default function MttShadowDashboard() {
       </section>
 
       <footer>
-        MTT Shadow · paper only ·
-        real execution disabled
+        MTT Shadow · виртуальная статистика · реальные деньги не используются
       </footer>
     </main>
   );
